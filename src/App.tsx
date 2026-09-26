@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDatabase } from './context/DatabaseContext';
 import { Sidebar, NavTab } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { BottomNav } from './components/layout/BottomNav';
 import { LoginModal } from './components/auth/LoginModal';
 import { AccessDeniedModal } from './components/auth/AccessDeniedModal';
 
@@ -68,6 +69,12 @@ export const App: React.FC = () => {
           {currentTab === 'interns' && <InternsView />}
           {currentTab === 'settings' && <SettingsView />}
         </main>
+
+        {/* Fixed Mobile Bottom Navigation Bar */}
+        <BottomNav
+          currentTab={currentTab}
+          onSelectTab={(tab) => setCurrentTab(tab)}
+        />
       </div>
     </div>
   );

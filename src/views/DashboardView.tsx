@@ -7,6 +7,8 @@ import {
   Boxes,
   AlertTriangle,
   Receipt,
+  ReceiptText,
+  LayoutDashboard,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
@@ -163,380 +165,166 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
 
   return (
     <div className="page-wrapper">
-      {/* Minimalist Hero Welcome Banner */}
-      <div className="dashboard-hero-banner">
+      {/* Mobile App Style Launcher Branding Header */}
+      <div className="launcher-brand-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            background: 'var(--primary-orange)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(255, 107, 0, 0.35)',
-            flexShrink: 0
-          }}>
-            <Sparkles size={22} color="#FFFFFF" />
+          <div className="launcher-logo-box">
+            <img 
+              src="/thinkaroo-logo.png" 
+              alt="Thinkaroo Logo" 
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
-                {settings.businessName}
-              </h2>
-              <span className="badge badge-own" style={{ fontSize: '9.5px', background: 'rgba(255, 107, 0, 0.2)', color: '#FF8A00', border: '1px solid rgba(255, 107, 0, 0.4)' }}>
-                {settings.schoolName}
-              </span>
-            </div>
-            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px', margin: 0 }}>
-              Intern Desk: <strong>{currentIntern?.name || 'Active Desk'}</strong>
+            <h1 className="launcher-brand-title">
+              Thinkaroo – Caliph Life School
+            </h1>
+            <p className="launcher-brand-subtitle">
+              Select an option to continue
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={onNewSaleClick}
-            className="btn-primary"
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(255, 107, 0, 0.35)'
-            }}
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>+ POS Terminal</span>
-          </button>
-        </div>
+        <button
+          onClick={onNewSaleClick}
+          className="btn-primary launcher-pos-btn"
+        >
+          <Plus size={16} strokeWidth={2.5} />
+          <span>POS Terminal</span>
+        </button>
       </div>
 
-      {/* ALL OPERATIONS HUB (MINIMALIST PREMIUM LAUNCHER MATRIX) */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <Layers size={17} color="var(--primary-blue)" />
-            Operations & Workstations
-          </h3>
-        </div>
-
-        <div className="dashboard-operations-grid">
-          {/* Card 1: POS & Sales */}
-          <div 
-            onClick={onNewSaleClick} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 100%)',
-              border: '1px solid #FFEDD5',
-              transition: 'all 0.15s ease',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 16px -4px rgba(255, 107, 0, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: 'var(--primary-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShoppingBag size={16} color="#FFFFFF" />
+      {/* 2-Column Mobile App Style Launcher Cards Matrix */}
+      <div style={{ marginBottom: '24px' }}>
+        <div className="launcher-grid">
+          {[
+            {
+              id: 'dashboard',
+              title: 'Dashboard',
+              description: 'Overview & Analytics',
+              icon: LayoutDashboard,
+              bg: '#EEF2FF',
+              color: '#4F46E5'
+            },
+            {
+              id: 'products',
+              title: 'Products',
+              description: 'Catalog & Pricing',
+              icon: Package,
+              bg: '#F0F9FF',
+              color: 'var(--primary-blue)',
+              badge: `${products.length}`
+            },
+            {
+              id: 'stock',
+              title: 'Stock',
+              description: 'Inventory Balance',
+              icon: Boxes,
+              bg: '#F0FDFA',
+              color: '#0D9488',
+              badge: inventoryStats.lowStockCount > 0 ? `${inventoryStats.lowStockCount} Low` : 'Optimal'
+            },
+            {
+              id: 'purchase',
+              title: 'Purchase',
+              description: 'Intake & Suppliers',
+              icon: Truck,
+              bg: '#F3E8FF',
+              color: '#9333EA',
+              badge: `${purchases.length}`
+            },
+            {
+              id: 'sales',
+              title: 'Sales',
+              description: 'POS & Billing',
+              icon: ReceiptText,
+              bg: '#FFF7ED',
+              color: 'var(--primary-orange)',
+              badge: 'POS'
+            },
+            {
+              id: 'customers',
+              title: 'Customers',
+              description: 'Clients & History',
+              icon: Users,
+              bg: '#EFF6FF',
+              color: '#2563EB',
+              badge: `${customers.length}`
+            },
+            {
+              id: 'expenses',
+              title: 'Expenses',
+              description: 'Business Spend',
+              icon: CreditCard,
+              bg: '#FEF2F2',
+              color: '#DC2626',
+              badge: `${expenses.length}`
+            },
+            {
+              id: 'wastage',
+              title: 'Wastage',
+              description: 'Damage & Loss',
+              icon: AlertTriangle,
+              bg: '#FFFBEB',
+              color: '#D97706',
+              badge: `${wastages.length}`
+            },
+            {
+              id: 'reports',
+              title: 'Reports',
+              description: 'P&L & Analytics',
+              icon: BarChart3,
+              bg: '#F0FDF4',
+              color: '#16A34A',
+              badge: 'P&L'
+            },
+            {
+              id: 'interns',
+              title: 'Interns',
+              description: 'Access & Audit',
+              icon: GraduationCap,
+              bg: '#EEF2FF',
+              color: '#4F46E5',
+              badge: `${activityLogs.length}`
+            },
+            {
+              id: 'settings',
+              title: 'Settings',
+              description: 'Config & Rules',
+              icon: Settings,
+              bg: '#F8FAFC',
+              color: '#475569',
+              badge: 'Config'
+            }
+          ].map(mod => {
+            const Icon = mod.icon;
+            return (
+              <div
+                key={mod.id}
+                onClick={() => {
+                  if (mod.id === 'sales') onNewSaleClick();
+                  else onNavigateTab(mod.id);
+                }}
+                className="tk-card launcher-card"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div 
+                    className="launcher-icon-box"
+                    style={{ background: mod.bg }}
+                  >
+                    <Icon size={18} color={mod.color} />
+                  </div>
+                  {mod.badge && (
+                    <span className="badge badge-neutral launcher-badge">
+                      {mod.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="launcher-card-title">{mod.title}</div>
+                <div className="launcher-card-desc">{mod.description}</div>
               </div>
-              <span className="badge badge-commission" style={{ fontSize: '9px', fontWeight: 700 }}>POS</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Sales & Billing</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--primary-orange)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Open Terminal</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 2: Products */}
-          <div 
-            onClick={() => onNavigateTab('products')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: 'var(--primary-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Package size={16} color="var(--primary-blue)" />
-              </div>
-              <span className="badge badge-own" style={{ fontSize: '9px' }}>{products.length} Items</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Products</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Catalog & Prices</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 3: Stock */}
-          <div 
-            onClick={() => onNavigateTab('stock')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Boxes size={16} color="#0D9488" />
-              </div>
-              {inventoryStats.lowStockCount > 0 ? (
-                <span className="badge badge-warning" style={{ fontSize: '9px' }}>{inventoryStats.lowStockCount} Low</span>
-              ) : (
-                <span className="badge badge-success" style={{ fontSize: '9px' }}>Optimal</span>
-              )}
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Stock</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#0D9488', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Inventory</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 4: Purchase */}
-          <div 
-            onClick={() => onNavigateTab('purchase')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Truck size={16} color="#9333EA" />
-              </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{purchases.length} POs</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Purchases</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#9333EA', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Intake Goods</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 5: Customers */}
-          <div 
-            onClick={() => onNavigateTab('customers')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={16} color="#2563EB" />
-              </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{customers.length} Clients</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Customers</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#2563EB', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Client Ledger</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 6: Expenses */}
-          <div 
-            onClick={() => onNavigateTab('expenses')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CreditCard size={16} color="#DC2626" />
-              </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{expenses.length} Logs</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Expenses</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Log Spend</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 7: Wastage */}
-          <div 
-            onClick={() => onNavigateTab('wastage')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={16} color="#D97706" />
-              </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{wastages.length} Records</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Wastage</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#D97706', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Track Damage</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 8: Reports */}
-          <div 
-            onClick={() => onNavigateTab('reports')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BarChart3 size={16} color="#16A34A" />
-              </div>
-              <span className="badge badge-success" style={{ fontSize: '9px' }}>P&L</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Reports</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#16A34A', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Analytics</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 9: Interns */}
-          <div 
-            onClick={() => onNavigateTab('interns')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <GraduationCap size={16} color="#4F46E5" />
-              </div>
-              <span className="badge badge-own" style={{ fontSize: '9px' }}>{activityLogs.length} Logs</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Interns</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Audit Access</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
-
-          {/* Card 10: Settings */}
-          <div 
-            onClick={() => onNavigateTab('settings')} 
-            className="tk-card" 
-            style={{
-              padding: '12px 14px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F8FAFC', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Settings size={16} color="#475569" />
-              </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>Config</span>
-            </div>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Settings</div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span>Configure</span>
-              <ChevronRight size={13} />
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
