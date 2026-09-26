@@ -271,17 +271,12 @@ export const SalesView: React.FC = () => {
 
       {activeTab === 'pos' ? (
         /* POS Layout: Left Product Picker, Right Cart Terminal */
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr',
-          gap: '20px',
-          alignItems: 'start'
-        }}>
+        <div className="pos-layout-grid">
           {/* Left: Product Picker */}
           <div>
             {/* Search & Category Filter */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+            <div className="pos-filter-container">
+              <div className="pos-search-wrapper">
                 <input
                   type="text"
                   placeholder="Search products by name or code..."
@@ -296,8 +291,7 @@ export const SalesView: React.FC = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="form-select"
-                style={{ width: '160px', fontSize: '12.5px' }}
+                className="form-select pos-category-select"
               >
                 <option value="ALL">All Categories</option>
                 {settings.categories.map(c => (
@@ -307,14 +301,7 @@ export const SalesView: React.FC = () => {
             </div>
 
             {/* Product Cards Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-              gap: '12px',
-              maxHeight: 'calc(100vh - 230px)',
-              overflowY: 'auto',
-              paddingRight: '4px'
-            }}>
+            <div className="pos-products-grid">
               {filteredProducts.map(prod => {
                 const totalStock = prod.ownStock + prod.commissionStock;
                 const isOut = totalStock <= 0;
@@ -392,7 +379,7 @@ export const SalesView: React.FC = () => {
           </div>
 
           {/* Right: Cart & Order Billing Terminal */}
-          <div className="tk-card" style={{ padding: '18px', background: '#FFFFFF' }}>
+          <div className="tk-card pos-cart-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShoppingCart size={18} color="var(--primary-orange)" />
@@ -425,7 +412,7 @@ export const SalesView: React.FC = () => {
               </div>
 
               {!isWalkIn && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div className="pos-customer-inputs">
                   <input
                     type="text"
                     placeholder="Student / Parent Name"

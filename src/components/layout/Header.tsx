@@ -31,17 +31,17 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getTabTitle = (tab: NavTab) => {
     switch (tab) {
-      case 'dashboard': return 'Dashboard Overview';
-      case 'products': return 'Products Catalogue';
-      case 'stock': return 'Inventory & Stock Management';
-      case 'purchase': return 'Purchases Intake';
-      case 'sales': return 'Sales & Billing Terminal';
-      case 'customers': return 'Customers & Purchase History';
-      case 'expenses': return 'Business Expenses';
-      case 'wastage': return 'Wastage & Damaged Goods';
-      case 'reports': return 'Financial Reports & Analytics';
-      case 'interns': return 'Intern Access Management';
-      case 'settings': return 'Business Settings';
+      case 'dashboard': return 'Dashboard';
+      case 'products': return 'Products';
+      case 'stock': return 'Stock & Inventory';
+      case 'purchase': return 'Purchases';
+      case 'sales': return 'Sales & POS';
+      case 'customers': return 'Customers';
+      case 'expenses': return 'Expenses';
+      case 'wastage': return 'Wastage';
+      case 'reports': return 'Reports & Analytics';
+      case 'interns': return 'Interns';
+      case 'settings': return 'Settings';
       default: return 'Thinkaroo ERP';
     }
   };

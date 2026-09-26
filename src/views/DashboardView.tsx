@@ -167,29 +167,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
       <div className="dashboard-hero-banner">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '44px',
-            height: '44px',
+            width: '42px',
+            height: '42px',
             borderRadius: '12px',
             background: 'var(--primary-orange)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(255, 107, 0, 0.4)',
+            boxShadow: '0 4px 12px rgba(255, 107, 0, 0.35)',
             flexShrink: 0
           }}>
-            <Sparkles size={24} color="#FFFFFF" />
+            <Sparkles size={22} color="#FFFFFF" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '19px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
-                Welcome to {settings.businessName}
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                {settings.businessName}
               </h2>
               <span className="badge badge-own" style={{ fontSize: '9.5px', background: 'rgba(255, 107, 0, 0.2)', color: '#FF8A00', border: '1px solid rgba(255, 107, 0, 0.4)' }}>
                 {settings.schoolName}
               </span>
             </div>
-            <p style={{ fontSize: '12.5px', color: '#94A3B8', marginTop: '2px', margin: 0 }}>
-              Desk: <strong>{currentIntern?.name || 'Intern'}</strong> • Active ERP Central Hub & Operations Dashboard
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px', margin: 0 }}>
+              Intern Desk: <strong>{currentIntern?.name || 'Active Desk'}</strong>
             </p>
           </div>
         </div>
@@ -199,30 +199,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={onNewSaleClick}
             className="btn-primary"
             style={{
-              padding: '9px 18px',
+              padding: '8px 16px',
               fontSize: '13px',
               fontWeight: 700,
               boxShadow: '0 4px 12px rgba(255, 107, 0, 0.35)'
             }}
           >
             <Plus size={16} strokeWidth={2.5} />
-            <span>+ Open POS Terminal</span>
+            <span>+ POS Terminal</span>
           </button>
         </div>
       </div>
 
       {/* ALL OPERATIONS HUB (MINIMALIST PREMIUM LAUNCHER MATRIX) */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={18} color="var(--primary-blue)" />
-              All ERP Operations & Modules
-            </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Direct single-click launcher to all ERP workstations and features
-            </p>
-          </div>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <Layers size={17} color="var(--primary-blue)" />
+            Operations & Workstations
+          </h3>
         </div>
 
         <div className="dashboard-operations-grid">
@@ -231,7 +226,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={onNewSaleClick} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               background: 'linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 100%)',
               border: '1px solid #FFEDD5',
@@ -247,15 +242,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShoppingBag size={17} color="#FFFFFF" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: 'var(--primary-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShoppingBag size={16} color="#FFFFFF" />
               </div>
-              <span className="badge badge-commission" style={{ fontSize: '9.5px', fontWeight: 700 }}>POS TERMINAL</span>
+              <span className="badge badge-commission" style={{ fontSize: '9px', fontWeight: 700 }}>POS</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Sales & Billing</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Checkout & Walk-in Bills</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--primary-orange)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Sales & Billing</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--primary-orange)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <span>Open Terminal</span>
               <ChevronRight size={13} />
             </div>
@@ -266,7 +260,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('products')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -279,16 +273,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Package size={17} color="var(--primary-blue)" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: 'var(--primary-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Package size={16} color="var(--primary-blue)" />
               </div>
-              <span className="badge badge-own" style={{ fontSize: '9.5px' }}>{products.length} Items</span>
+              <span className="badge badge-own" style={{ fontSize: '9px' }}>{products.length} Items</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Products Catalogue</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Pricing, SKUs & Images</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>View Products</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Products</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Catalog & Prices</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -298,7 +291,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('stock')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -311,20 +304,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Boxes size={17} color="#0D9488" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Boxes size={16} color="#0D9488" />
               </div>
               {inventoryStats.lowStockCount > 0 ? (
-                <span className="badge badge-warning" style={{ fontSize: '9.5px' }}>{inventoryStats.lowStockCount} Low</span>
+                <span className="badge badge-warning" style={{ fontSize: '9px' }}>{inventoryStats.lowStockCount} Low</span>
               ) : (
-                <span className="badge badge-success" style={{ fontSize: '9.5px' }}>Optimal</span>
+                <span className="badge badge-success" style={{ fontSize: '9px' }}>Optimal</span>
               )}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Stock & Inventory</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Own vs Commission Stock</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#0D9488', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>Manage Inventory</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Stock</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#0D9488', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Inventory</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -334,7 +326,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('purchase')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -347,16 +339,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Truck size={17} color="#9333EA" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Truck size={16} color="#9333EA" />
               </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9.5px' }}>{purchases.length} POs</span>
+              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{purchases.length} POs</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Purchases & Intake</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Supplier & Consignment Goods</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#9333EA', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>Record Intake</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Purchases</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#9333EA', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Intake Goods</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -366,7 +357,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('customers')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -379,16 +370,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={17} color="#2563EB" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={16} color="#2563EB" />
               </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9.5px' }}>{customers.length} Clients</span>
+              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{customers.length} Clients</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Customers Ledger</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Order History & Records</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#2563EB', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>View Directory</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Customers</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#2563EB', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Client Ledger</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -398,7 +388,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('expenses')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -411,16 +401,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CreditCard size={17} color="#DC2626" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CreditCard size={16} color="#DC2626" />
               </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9.5px' }}>{expenses.length} Logs</span>
+              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{expenses.length} Logs</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Business Expenses</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Delivery, Transport & Packaging</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>Log Expense</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Expenses</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Log Spend</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -430,7 +419,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('wastage')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -443,16 +432,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={17} color="#D97706" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertTriangle size={16} color="#D97706" />
               </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9.5px' }}>{wastages.length} Records</span>
+              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>{wastages.length} Records</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Wastage & Damage</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Damaged Goods & Loss Tracking</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#D97706', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>Track Wastage</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Wastage</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#D97706', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Track Damage</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -462,7 +450,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('reports')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -475,16 +463,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BarChart3 size={17} color="#16A34A" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <BarChart3 size={16} color="#16A34A" />
               </div>
-              <span className="badge badge-success" style={{ fontSize: '9.5px' }}>P&L Reports</span>
+              <span className="badge badge-success" style={{ fontSize: '9px' }}>P&L</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Reports & Analytics</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>P&L Breakdown & CSV Export</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>View Analytics</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Reports</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#16A34A', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Analytics</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -494,7 +481,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('interns')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -507,16 +494,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <GraduationCap size={17} color="#4F46E5" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <GraduationCap size={16} color="#4F46E5" />
               </div>
-              <span className="badge badge-own" style={{ fontSize: '9.5px' }}>{activityLogs.length} Logs</span>
+              <span className="badge badge-own" style={{ fontSize: '9px' }}>{activityLogs.length} Logs</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Interns & Audit Trail</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Approved Gmail Accounts & History</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>Manage Access</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Interns</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Audit Access</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -526,7 +512,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             onClick={() => onNavigateTab('settings')} 
             className="tk-card" 
             style={{
-              padding: '14px',
+              padding: '12px 14px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
@@ -539,16 +525,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Settings size={17} color="#475569" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F8FAFC', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Settings size={16} color="#475569" />
               </div>
-              <span className="badge badge-neutral" style={{ fontSize: '9.5px' }}>Config</span>
+              <span className="badge badge-neutral" style={{ fontSize: '9px' }}>Config</span>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Business Settings</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Branding, Commission % & Rules</div>
-            <div style={{ marginTop: '10px', fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>Configure App</span>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>Settings</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span>Configure</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -558,12 +543,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
       {/* Top Header with Date Filter */}
       <div className="dashboard-metrics-header">
         <div>
-          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-            Performance Metrics & Financial Summary
+          <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+            Performance Metrics
           </h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-            Real-time sales, inventory, and net profit analytics
-          </p>
         </div>
 
         {/* Date Filter Tabs */}
@@ -571,7 +553,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
           <div className="dashboard-date-filter-tabs">
             {(['all', 'today', '7days', '30days', 'thisMonth'] as DateFilterOption[]).map(opt => {
               const labels: Record<DateFilterOption, string> = {
-                all: 'All Time',
+                all: 'All',
                 today: 'Today',
                 '7days': '7 Days',
                 '30days': '30 Days',
@@ -595,99 +577,99 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
       {/* Primary KPI Metrics Grid */}
       <div className="dashboard-kpi-grid">
         {/* Today's Sales */}
-        <div className="tk-card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="tk-card" style={{ padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Today's Sales</span>
-            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--primary-orange-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={15} color="var(--primary-orange)" />
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'var(--primary-orange-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={14} color="var(--primary-orange)" />
             </div>
           </div>
           <div className="dashboard-kpi-value" style={{ color: 'var(--primary-orange)' }}>
             {formatCurrency(filteredData.todaySales)}
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '4px' }}>
-            Current day register
+          <div style={{ fontSize: '10.5px', color: 'var(--text-light)', marginTop: '2px' }}>
+            Today
           </div>
         </div>
 
         {/* Total Sales */}
-        <div className="tk-card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="tk-card" style={{ padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Total Sales</span>
-            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--primary-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Receipt size={15} color="var(--primary-blue)" />
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'var(--primary-blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Receipt size={14} color="var(--primary-blue)" />
             </div>
           </div>
           <div className="dashboard-kpi-value" style={{ color: 'var(--text-main)' }}>
             {formatCurrency(filteredData.totalSales)}
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            {filteredData.salesCount} bills recorded
+          <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {filteredData.salesCount} bills
           </div>
         </div>
 
         {/* Own Sales */}
-        <div className="tk-card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="tk-card" style={{ padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Own Sales</span>
-            <span className="badge badge-own" style={{ fontSize: '10px' }}>Own</span>
+            <span className="badge badge-own" style={{ fontSize: '9.5px' }}>Own</span>
           </div>
           <div className="dashboard-kpi-value" style={{ color: 'var(--primary-blue)' }}>
             {formatCurrency(filteredData.ownSales)}
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '4px' }}>
-            Thinkaroo Inventory
+          <div style={{ fontSize: '10.5px', color: 'var(--text-light)', marginTop: '2px' }}>
+            Thinkaroo stock
           </div>
         </div>
 
         {/* Commission Sales */}
-        <div className="tk-card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="tk-card" style={{ padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Commission Sales</span>
-            <span className="badge badge-commission" style={{ fontSize: '10px' }}>10% Comm</span>
+            <span className="badge badge-commission" style={{ fontSize: '9.5px' }}>10%</span>
           </div>
           <div className="dashboard-kpi-value" style={{ color: 'var(--text-main)' }}>
             {formatCurrency(filteredData.commissionSales)}
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+          <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
             Earned: <strong style={{ color: 'var(--primary-orange)' }}>{formatCurrency(filteredData.commissionEarned)}</strong>
           </div>
         </div>
 
         {/* Net Profit */}
-        <div className="tk-card" style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="tk-card" style={{ padding: '14px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>Net Result</span>
-            <TrendingUp size={15} color="#166534" />
+            <TrendingUp size={14} color="#166534" />
           </div>
           <div className="dashboard-kpi-value" style={{ color: '#166534' }}>
             {formatCurrency(filteredData.netProfit)}
           </div>
-          <div style={{ fontSize: '11px', color: '#15803D', marginTop: '4px' }}>
-            After expenses & wastage
+          <div style={{ fontSize: '10.5px', color: '#15803D', marginTop: '2px' }}>
+            Net profit
           </div>
         </div>
 
         {/* Expenses */}
-        <div className="tk-card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="tk-card" style={{ padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Expenses</span>
-            <TrendingDown size={15} color="#EF4444" />
+            <TrendingDown size={14} color="#EF4444" />
           </div>
           <div className="dashboard-kpi-value" style={{ color: '#EF4444' }}>
             {formatCurrency(filteredData.totalExpenses)}
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '4px' }}>
-            Operational spend
+          <div style={{ fontSize: '10.5px', color: 'var(--text-light)', marginTop: '2px' }}>
+            Operating spend
           </div>
         </div>
       </div>
 
       {/* Secondary Row: Inventory Snapshot (Compact Row) */}
-      <div className="tk-card dashboard-inventory-snapshot" style={{ padding: '14px 20px', marginBottom: '20px', background: '#FFFFFF' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Boxes size={18} color="var(--primary-blue)" />
+      <div className="tk-card dashboard-inventory-snapshot" style={{ padding: '12px 18px', marginBottom: '20px', background: '#FFFFFF' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Boxes size={17} color="var(--primary-blue)" />
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
               Inventory Balance
             </span>
@@ -695,33 +677,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
 
           <div className="inventory-stats-group">
             <div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Products: </span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{inventoryStats.totalProducts}</strong>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Products: </span>
+              <strong style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{inventoryStats.totalProducts}</strong>
             </div>
             <div className="stat-divider" />
             <div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Stock: </span>
-              <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{inventoryStats.totalStock} units</strong>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Stock: </span>
+              <strong style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{inventoryStats.totalStock} units</strong>
             </div>
             <div className="stat-divider" />
             <div>
-              <span style={{ fontSize: '11px', color: 'var(--primary-blue)' }}>Own Stock: </span>
-              <strong style={{ fontSize: '13px', color: 'var(--primary-blue)' }}>{inventoryStats.ownStockTotal}</strong>
+              <span style={{ fontSize: '11px', color: 'var(--primary-blue)' }}>Own: </span>
+              <strong style={{ fontSize: '12.5px', color: 'var(--primary-blue)' }}>{inventoryStats.ownStockTotal}</strong>
             </div>
             <div className="stat-divider" />
             <div>
-              <span style={{ fontSize: '11px', color: 'var(--primary-orange)' }}>Commission Stock: </span>
-              <strong style={{ fontSize: '13px', color: 'var(--primary-orange)' }}>{inventoryStats.commissionStockTotal}</strong>
+              <span style={{ fontSize: '11px', color: 'var(--primary-orange)' }}>Commission: </span>
+              <strong style={{ fontSize: '12.5px', color: 'var(--primary-orange)' }}>{inventoryStats.commissionStockTotal}</strong>
             </div>
             <div className="stat-divider" />
             <div>
-              <span style={{ fontSize: '11px', color: '#B45309' }}>Low Stock: </span>
-              <strong style={{ fontSize: '13px', color: '#B45309' }}>{inventoryStats.lowStockCount}</strong>
+              <span style={{ fontSize: '11px', color: '#B45309' }}>Low: </span>
+              <strong style={{ fontSize: '12.5px', color: '#B45309' }}>{inventoryStats.lowStockCount}</strong>
             </div>
             <div className="stat-divider" />
             <div>
-              <span style={{ fontSize: '11px', color: 'var(--danger)' }}>Out of Stock: </span>
-              <strong style={{ fontSize: '13px', color: 'var(--danger)' }}>{inventoryStats.outOfStockCount}</strong>
+              <span style={{ fontSize: '11px', color: 'var(--danger)' }}>Out: </span>
+              <strong style={{ fontSize: '12.5px', color: 'var(--danger)' }}>{inventoryStats.outOfStockCount}</strong>
             </div>
           </div>
 
@@ -730,8 +712,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
             className="btn-ghost"
             style={{ fontSize: '12px', fontWeight: 600, color: 'var(--primary-blue)' }}
           >
-            <span>Manage Stock</span>
-            <ChevronRight size={14} />
+            <span>Manage</span>
+            <ChevronRight size={13} />
           </button>
         </div>
       </div>

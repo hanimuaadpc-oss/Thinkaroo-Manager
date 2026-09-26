@@ -814,6 +814,52 @@ input, select, textarea {
   gap: 16px;
 }
 
+/* POS Terminal Layout */
+.pos-layout-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.pos-filter-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.pos-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.pos-category-select {
+  width: 160px;
+  font-size: 12.5px;
+}
+
+.pos-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pos-cart-card {
+  padding: 18px;
+  background: #FFFFFF;
+}
+
+.pos-customer-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 /* =========================================================
    Mobile Framing & Touch Responsiveness (Max-width: 768px)
    ========================================================= */
@@ -914,6 +960,45 @@ input, select, textarea {
     grid-template-columns: 1fr !important;
   }
 
+  /* POS Terminal Mobile Single Column Layout */
+  .pos-layout-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .pos-filter-container {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .pos-search-wrapper {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .pos-category-select {
+    width: 100% !important;
+  }
+
+  .pos-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+    gap: 10px !important;
+  }
+
+  .pos-cart-card {
+    padding: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-customer-inputs {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
   .inventory-stats-group {
     gap: 10px 14px !important;
   }
@@ -974,6 +1059,10 @@ input, select, textarea {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
+  .pos-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
   .header-actions {
     gap: 6px !important;
   }
@@ -987,4 +1076,5 @@ input, select, textarea {
     display: none !important;
   }
 }
+
 
