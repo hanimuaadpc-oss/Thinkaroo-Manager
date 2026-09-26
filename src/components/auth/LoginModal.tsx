@@ -1,26 +1,33 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Mail, ArrowRight, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Mail, ArrowRight, Lock, KeyRound, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 
 export const LoginModal: React.FC = () => {
-  const { loginWithGmail, interns } = useDatabase();
+  const { loginWithGmail, settings } = useDatabase();
   const [emailInput, setEmailInput] = useState('');
+  const [pinInput, setPinInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailInput.trim()) {
-      setErrorMessage('Please enter your Gmail address');
+    setErrorMessage('');
+
+    const cleanEmail = emailInput.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMessage('Please enter your permitted Gmail address');
       return;
     }
-    const result = loginWithGmail(emailInput);
+
+    // Security PIN check: default 2026 or 1234
+    if (pinInput.trim() && pinInput.trim() !== '2026' && pinInput.trim() !== '1234') {
+      setErrorMessage('Invalid Access PIN code. Please verify with your system administrator.');
+      return;
+    }
+
+    const result = loginWithGmail(cleanEmail);
     if (!result.success) {
       setErrorMessage(result.message);
     }
-  };
-
-  const handleQuickLogin = (email: string) => {
-    loginWithGmail(email);
   };
 
   return (
@@ -32,21 +39,22 @@ export const LoginModal: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 100,
-      padding: '20px'
+      padding: '16px'
     }}>
       <div style={{
         background: '#FFFFFF',
         borderRadius: 'var(--radius-xl)',
-        maxWidth: '440px',
+        maxWidth: '420px',
         width: '100%',
-        padding: '36px 32px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
-        textAlign: 'center'
+        padding: '36px 28px',
+        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.5)',
+        textAlign: 'center',
+        border: '1px solid var(--border-subtle)'
       }}>
-        {/* Brand Logo */}
+        {/* Lock Security Badge */}
         <div style={{
-          width: '72px',
-          height: '72px',
+          width: '68px',
+          height: '68px',
           borderRadius: '16px',
           background: '#FFF7ED',
           border: '2px solid #FED7AA',
@@ -55,7 +63,7 @@ export const LoginModal: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '8px',
-          boxShadow: '0 4px 10px rgba(255, 107, 0, 0.18)'
+          boxShadow: '0 4px 14px rgba(255, 107, 0, 0.2)'
         }}>
           <img 
             src="/thinkaroo-logo.png" 
@@ -69,48 +77,73 @@ export const LoginModal: React.FC = () => {
           fontWeight: 800,
           color: 'var(--primary-orange)',
           letterSpacing: '-0.02em',
-          marginBottom: '4px'
+          marginBottom: '2px'
         }}>
           THINK<span style={{ color: 'var(--primary-blue)' }}>AROO</span>
         </h2>
-        <p style={{
-          fontSize: '12px',
-          fontWeight: 600,
-          color: 'var(--text-muted)',
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          color: 'var(--primary-blue)',
           textTransform: 'uppercase',
           letterSpacing: '0.04em',
           marginBottom: '16px'
         }}>
-          Caliph Life School • Intern Management
-        </p>
+          {settings.schoolName || 'Caliph Life School'} • Enterprise ERP
+        </div>
 
+        {/* Protection Banner */}
         <div style={{
-          background: '#F8FAFC',
-          border: '1px solid var(--border-subtle)',
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
           borderRadius: 'var(--radius-md)',
-          padding: '10px 14px',
+          padding: '10px 12px',
           fontSize: '12px',
-          color: 'var(--text-secondary)',
+          color: '#991B1B',
           lineHeight: 1.4,
-          marginBottom: '22px',
+          marginBottom: '20px',
           textAlign: 'left',
           display: 'flex',
           gap: '8px',
           alignItems: 'center'
         }}>
-          <Lock size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }} />
-          <span>Internal access only. Sign in with an approved Gmail account.</span>
+          <Lock size={18} color="#DC2626" style={{ flexShrink: 0 }} />
+          <div>
+            <strong style={{ display: 'block', fontSize: '12px', color: '#7F1D1D' }}>RESTRICTED ACCESS SYSTEM</strong>
+            <span>Only whitelisted & permitted accounts are allowed. Unauthorized entry is blocked.</span>
+          </div>
         </div>
 
         <form onSubmit={handleLogin}>
+          {errorMessage && (
+            <div style={{
+              background: 'var(--danger-light)',
+              border: '1px solid var(--danger-border)',
+              color: 'var(--danger)',
+              padding: '9px 12px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              marginBottom: '14px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           <div style={{ textAlign: 'left', marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              Approved Gmail Address
+              Permitted Gmail Address *
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="email"
-                placeholder="intern.name@caliphschool.com"
+                required
+                placeholder="e.g. hiba@caliphschool.com"
                 value={emailInput}
                 onChange={(e) => {
                   setEmailInput(e.target.value);
@@ -129,86 +162,50 @@ export const LoginModal: React.FC = () => {
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} 
               />
             </div>
-            {errorMessage && (
-              <p style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '5px', fontWeight: 500 }}>
-                {errorMessage}
-              </p>
-            )}
+          </div>
+
+          <div style={{ textAlign: 'left', marginBottom: '18px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              Security Access PIN (Optional)
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="password"
+                maxLength={6}
+                placeholder="Enter 4-digit PIN (Default: 2026)"
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value);
+                  setErrorMessage('');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 36px',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '13.5px'
+                }}
+              />
+              <KeyRound 
+                size={16} 
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} 
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             className="btn-primary"
-            style={{ width: '100%', padding: '11px', justifyContent: 'center', fontSize: '14px', borderRadius: 'var(--radius-md)' }}
+            style={{ width: '100%', padding: '11px', justifyContent: 'center', fontSize: '14px', borderRadius: 'var(--radius-md)', fontWeight: 700 }}
           >
-            <span>Sign In to Terminal</span>
+            <ShieldCheck size={18} />
+            <span>Verify & Log In</span>
             <ArrowRight size={16} />
           </button>
         </form>
 
-        {/* Quick select test accounts */}
-        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border-light)', textAlign: 'left' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Active Approved Interns (Quick Sign In)
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {interns.filter(i => i.status === 'ENABLED').slice(0, 3).map(intern => (
-              <button
-                key={intern.id}
-                onClick={() => handleQuickLogin(intern.email)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-subtle)',
-                  background: '#F8FAFC',
-                  fontSize: '12px',
-                  color: 'var(--text-main)',
-                  width: '100%'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--primary-blue-light)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <CheckCircle2 size={13} color="var(--primary-blue)" />
-                  <span style={{ fontWeight: 600 }}>{intern.name.split(' (')[0]}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>({intern.email})</span>
-                </div>
-                <span style={{ color: 'var(--primary-blue)', fontWeight: 600, fontSize: '11px' }}>Enter &rarr;</span>
-              </button>
-            ))}
-
-            {/* Test unapproved button */}
-            <button
-              onClick={() => loginWithGmail('stranger@gmail.com')}
-              style={{
-                marginTop: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px dashed #CBD5E1',
-                background: '#FFFFFF',
-                fontSize: '11px',
-                color: 'var(--text-muted)',
-                width: '100%'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#FEF2F2';
-                e.currentTarget.style.color = 'var(--danger)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#FFFFFF';
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
-            >
-              <span>Test Unauthorized Account (stranger@gmail.com)</span>
-            </button>
-          </div>
+        <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid var(--border-light)', fontSize: '11px', color: 'var(--text-muted)' }}>
+          Need access? Contact <strong>Hiba Karatt (Faculty Mentor)</strong> to whitelist your Gmail account.
         </div>
       </div>
     </div>

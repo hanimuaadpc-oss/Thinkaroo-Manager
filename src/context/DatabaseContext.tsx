@@ -100,11 +100,13 @@ interface DatabaseContextType {
   // Intern Access Management
   addIntern: (email: string, name: string, role?: 'INTERN' | 'COORDINATOR' | 'ADMIN') => { success: boolean; message: string };
   toggleInternStatus: (id: string) => void;
+  updateInternRole: (id: string, role: 'INTERN' | 'COORDINATOR' | 'ADMIN') => void;
   deleteIntern: (id: string) => void;
 
-  // Settings & Reset
+  // Settings, Import & Reset
   updateSettings: (newSettings: Partial<BusinessSettings>) => void;
   resetDatabase: (mode: 'DEMO' | 'SALES' | 'INVENTORY' | 'FULL') => void;
+  importFullDatabase: (data: any) => void;
 
   // Helpers
   logActivity: (action: string, entityType: ActivityLog['entityType'], details: string, entityId?: string) => void;
@@ -145,18 +147,34 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [customers, setCustomers] = useState<Customer[]>(() => loadState(STORAGE_KEYS.CUSTOMERS, initialCustomers));
   const [expenses, setExpenses] = useState<Expense[]>(() => loadState(STORAGE_KEYS.EXPENSES, initialExpenses));
   const [wastages, setWastages] = useState<Wastage[]>(() => loadState(STORAGE_KEYS.WASTAGES, initialWastages));
-  const [interns, setInterns] = useState<Intern[]>(() => loadState(STORAGE_KEYS.INTERNS, initialInterns));
+  const [interns, setInterns] = useState<Intern[]>(() => {
+    const loaded = loadState(STORAGE_KEYS.INTERNS, initialInterns);
+    return loaded.map(i => {
+      if (i.id === 'intern-1' || i.name.toLowerCase().includes('fatima')) {
+        return {
+          ...i,
+          name: 'Hiba Karatt (Faculty Mentor)',
+          email: i.email.includes('admin') || i.email.includes('fatima') ? 'hiba@caliphschool.com' : i.email
+        };
+      }
+      return i;
+    });
+  });
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(() => loadState(STORAGE_KEYS.MOVEMENTS, initialMovements));
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadState(STORAGE_KEYS.ACTIVITY, initialActivityLogs));
   const [settings, setSettings] = useState<BusinessSettings>(() => loadState(STORAGE_KEYS.SETTINGS, initialSettings));
 
-  // Current intern (defaults to Aarav Patel for convenience if none selected, but verified against approved interns)
+  // Current intern (defaults to null for strict security protection, requiring permitted user login)
   const [currentIntern, setCurrentIntern] = useState<Intern | null>(() => {
     const saved = loadState<Intern | null>(STORAGE_KEYS.CURRENT_INTERN, null);
-    if (saved && initialInterns.some(i => i.email.toLowerCase() === saved.email.toLowerCase() && i.status === 'ENABLED')) {
-      return saved;
+    if (saved) {
+      const loadedInterns = loadState(STORAGE_KEYS.INTERNS, initialInterns);
+      const verified = loadedInterns.find(
+        i => i.email.toLowerCase() === saved.email.toLowerCase() && i.status === 'ENABLED'
+      );
+      if (verified) return verified;
     }
-    return initialInterns[1]; // Aarav Patel
+    return null; // Strict requirement: Must log in with a permitted email!
   });
 
   const [isAccessDenied, setIsAccessDenied] = useState(false);
@@ -802,6 +820,16 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
   };
 
+  const updateInternRole = (id: string, role: 'INTERN' | 'COORDINATOR' | 'ADMIN') => {
+    setInterns(prev => prev.map(i => {
+      if (i.id === id) {
+        logActivity('INTERN_ROLE_UPDATED', 'INTERN', `Updated role for ${i.name} to ${role}`, id);
+        return { ...i, role };
+      }
+      return i;
+    }));
+  };
+
   const deleteIntern = (id: string) => {
     const target = interns.find(i => i.id === id);
     if (target?.role === 'ADMIN') {
@@ -816,6 +844,22 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateSettings = (newSettings: Partial<BusinessSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
     logActivity('SETTINGS_UPDATED', 'SETTINGS', 'Updated business configuration settings');
+  };
+
+  // Full Database Import & Restore
+  const importFullDatabase = (data: any) => {
+    if (data.products && Array.isArray(data.products)) setProducts(data.products);
+    if (data.purchases && Array.isArray(data.purchases)) setPurchases(data.purchases);
+    if (data.sales && Array.isArray(data.sales)) setSales(data.sales);
+    if (data.customers && Array.isArray(data.customers)) setCustomers(data.customers);
+    if (data.expenses && Array.isArray(data.expenses)) setExpenses(data.expenses);
+    if (data.wastages && Array.isArray(data.wastages)) setWastages(data.wastages);
+    if (data.interns && Array.isArray(data.interns)) setInterns(data.interns);
+    if (data.stockMovements && Array.isArray(data.stockMovements)) setStockMovements(data.stockMovements);
+    if (data.activityLogs && Array.isArray(data.activityLogs)) setActivityLogs(data.activityLogs);
+    if (data.settings && typeof data.settings === 'object') setSettings(data.settings);
+
+    logActivity('DATABASE_RESTORED', 'SETTINGS', 'Restored database from external JSON backup file');
   };
 
   // Data Reset Options
@@ -900,10 +944,12 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       addIntern,
       toggleInternStatus,
+      updateInternRole,
       deleteIntern,
 
       updateSettings,
       resetDatabase,
+      importFullDatabase,
       logActivity,
     }}>
       {children}

@@ -39,8 +39,8 @@ export const initialSettings: BusinessSettings = {
 export const initialInterns: Intern[] = [
   {
     id: 'intern-1',
-    email: 'admin@caliphschool.com',
-    name: 'Mrs. Fatima (Faculty Mentor)',
+    email: 'hiba@caliphschool.com',
+    name: 'Hiba Karatt (Faculty Mentor)',
     role: 'ADMIN',
     status: 'ENABLED',
     addedDate: '2026-08-01T09:00:00Z',
@@ -111,7 +111,7 @@ export const initialProducts: Product[] = [
       {
         id: 'ch-1',
         timestamp: '2026-08-10T09:00:00Z',
-        intern: 'Mrs. Fatima',
+        intern: 'Hiba Karatt',
         action: 'CREATED',
         details: 'Initial catalogue entry'
       }

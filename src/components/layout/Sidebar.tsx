@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -13,7 +13,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  Sparkles,
+  ChevronLeft,
+  X,
   LucideIcon
 } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
@@ -45,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile
 }) => {
   const { currentIntern, logout, products } = useDatabase();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Calculate low stock alert count for badge
   const lowStockCount = products.filter(
@@ -71,109 +73,91 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isMobileOpen && (
         <div 
           onClick={onCloseMobile} 
+          className="sidebar-overlay"
           style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(15, 23, 42, 0.5)',
             zIndex: 40,
-            backdropFilter: 'blur(2px)'
+            backdropFilter: 'blur(3px)',
+            animation: 'fadeIn 0.2s ease-out'
           }}
         />
       )}
 
       <aside
-        style={{
-          width: '248px',
-          background: '#FFFFFF',
-          borderRight: '1px solid var(--border-subtle)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100vh',
-          position: 'sticky',
-          top: 0,
-          zIndex: 45,
-          flexShrink: 0,
-          transition: 'transform 0.2s ease',
-          ...(isMobileOpen ? {
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            boxShadow: 'var(--shadow-lg)'
-          } : {})
-        }}
+        className={`app-sidebar ${isMobileOpen ? 'mobile-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}
       >
         {/* Brand Header */}
-        <div style={{
-          padding: '20px 18px 16px',
-          borderBottom: '1px solid var(--border-light)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            background: '#FFF7ED',
-            border: '1px solid #FED7AA',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px',
-            boxShadow: '0 1px 3px rgba(255, 107, 0, 0.15)'
-          }}>
-            <img 
-              src="/thinkaroo-logo.png" 
-              alt="Thinkaroo Logo" 
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ 
-                fontFamily: 'Plus Jakarta Sans', 
-                fontWeight: 800, 
-                fontSize: '18px', 
-                color: 'var(--primary-orange)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1
-              }}>
-                THINK<span style={{ color: 'var(--primary-blue)' }}>AROO</span>
-              </span>
+        <div className="sidebar-brand-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="sidebar-logo-box">
+              <img 
+                src="/thinkaroo-logo.png" 
+                alt="Thinkaroo Logo" 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
             </div>
-            <p style={{ 
-              fontSize: '11px', 
-              fontWeight: 600, 
-              color: 'var(--text-muted)', 
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
-              marginTop: '2px'
-            }}>
-              Caliph Life School
-            </p>
+            {!isCollapsed && (
+              <div className="sidebar-brand-text">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ 
+                    fontFamily: 'Plus Jakarta Sans', 
+                    fontWeight: 800, 
+                    fontSize: '17px', 
+                    color: 'var(--primary-orange)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.1
+                  }}>
+                    THINK<span style={{ color: 'var(--primary-blue)' }}>AROO</span>
+                  </span>
+                </div>
+                <p style={{ 
+                  fontSize: '10.5px', 
+                  fontWeight: 600, 
+                  color: 'var(--text-muted)', 
+                  letterSpacing: '0.02em',
+                  textTransform: 'uppercase',
+                  marginTop: '2px',
+                  margin: 0
+                }}>
+                  Caliph Life School
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Controls: Close Mobile or Collapse Desktop */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {/* Mobile Close Button */}
+            <button
+              onClick={onCloseMobile}
+              className="sidebar-mobile-close-btn"
+              title="Close menu"
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Desktop Collapse Toggle Button */}
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="sidebar-collapse-btn"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
           </div>
         </div>
 
         {/* Navigation List */}
-        <div style={{
-          flex: 1,
-          padding: '12px 10px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '3px'
-        }}>
-          <div style={{ 
-            fontSize: '10.5px', 
-            fontWeight: 700, 
-            color: 'var(--text-light)', 
-            padding: '6px 12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em'
-          }}>
-            Business Operations
-          </div>
+        <div className="sidebar-nav-container">
+          {!isCollapsed && (
+            <div className="sidebar-section-title">
+              Business Operations
+            </div>
+          )}
 
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -186,53 +170,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectTab(item.id);
                   if (isMobileOpen) onCloseMobile();
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '13.5px',
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? 'var(--primary-orange)' : 'var(--text-secondary)',
-                  background: isActive ? 'var(--primary-orange-light)' : 'transparent',
-                  border: isActive ? '1px solid var(--primary-orange-border)' : '1px solid transparent',
-                  transition: 'all 0.15s ease',
-                  textAlign: 'left',
-                  width: '100%'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'var(--bg-surface-secondary)';
-                    e.currentTarget.style.color = 'var(--text-main)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }
-                }}
+                className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                title={isCollapsed ? item.label : undefined}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+                <div className="sidebar-nav-item-inner">
                   <Icon 
                     size={18} 
-                    className={isActive ? 'text-orange-500' : 'text-slate-400'} 
-                    style={{ color: isActive ? 'var(--primary-orange)' : '#64748B' }} 
+                    style={{ color: isActive ? 'var(--primary-orange)' : '#64748B', flexShrink: 0 }} 
                   />
-                  <span>{item.label}</span>
+                  {!isCollapsed && <span className="sidebar-nav-label">{item.label}</span>}
                 </div>
 
                 {item.badge !== undefined && (
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 7px',
-                    borderRadius: '10px',
-                    background: item.badgeColor === 'warning' ? '#FEF3C7' : '#F1F5F9',
-                    color: item.badgeColor === 'warning' ? '#B45309' : '#475569',
-                  }}>
-                    {item.badge}
+                  <span className={`sidebar-badge ${item.badgeColor === 'warning' ? 'badge-warn' : 'badge-def'} ${isCollapsed ? 'dot-only' : ''}`}>
+                    {isCollapsed ? '' : item.badge}
                   </span>
                 )}
               </button>
@@ -241,15 +192,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Intern Tag / Switcher & Logout */}
-        <div style={{
-          padding: '12px 14px',
-          borderTop: '1px solid var(--border-light)',
-          background: '#FAFAFA'
-        }}>
+        <div className="sidebar-footer">
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: isCollapsed ? 'center' : 'space-between',
             gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
@@ -268,54 +215,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}>
                 {currentIntern?.name?.charAt(0) || 'I'}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  color: 'var(--text-main)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {currentIntern?.name || 'Student Intern'}
+              {!isCollapsed && (
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    color: 'var(--text-main)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {currentIntern?.name || 'Student Intern'}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'var(--text-light)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {currentIntern?.email}
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: '11px',
-                  color: 'var(--text-light)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {currentIntern?.email}
-                </div>
-              </div>
+              )}
             </div>
 
-            <button
-              onClick={logout}
-              title="Sign Out / Switch Intern"
-              style={{
-                color: 'var(--text-light)',
-                padding: '6px',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#FEE2E2';
-                e.currentTarget.style.color = 'var(--danger)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--text-light)';
-              }}
-            >
-              <LogOut size={16} />
-            </button>
+            {!isCollapsed && (
+              <button
+                onClick={logout}
+                title="Sign Out / Switch Intern"
+                className="sidebar-logout-btn"
+              >
+                <LogOut size={16} />
+              </button>
+            )}
           </div>
         </div>
       </aside>
     </>
   );
 };
+

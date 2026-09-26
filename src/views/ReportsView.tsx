@@ -10,11 +10,15 @@ import {
   Boxes,
   AlertTriangle,
   FileSpreadsheet,
-  PieChart
+  PieChart,
+  Eye,
+  Printer,
+  X
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { exportToCSV } from '../utils/exportUtils';
+import { Sale } from '../types';
 
 type ReportTab = 'financial' | 'commission' | 'sales' | 'purchases' | 'stock' | 'expenses' | 'wastage';
 type DateFilter = 'all' | 'today' | '7days' | '30days' | 'thisMonth';
@@ -24,6 +28,7 @@ export const ReportsView: React.FC = () => {
 
   const [activeReport, setActiveReport] = useState<ReportTab>('financial');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [activeReceipt, setActiveReceipt] = useState<Sale | null>(null);
 
   // Filtered dataset based on selected period
   const filteredData = useMemo(() => {
@@ -385,12 +390,13 @@ export const ReportsView: React.FC = () => {
                   <th>Thinkaroo Earning (10%)</th>
                   <th>Owner Payable (90%)</th>
                   <th>Handled By</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredData.sales.filter(s => s.commissionSalesTotal > 0).length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-light)' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-light)' }}>
                       No commission transactions in selected period
                     </td>
                   </tr>
@@ -404,6 +410,17 @@ export const ReportsView: React.FC = () => {
                       <td><strong style={{ color: 'var(--primary-orange)' }}>{formatCurrency(s.commissionEarnedTotal)}</strong></td>
                       <td style={{ color: 'var(--text-secondary)' }}>{formatCurrency(s.ownerAmountTotal)}</td>
                       <td style={{ fontSize: '12px' }}>{s.internName}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          onClick={() => setActiveReceipt(s)}
+                          className="btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title="See Bill / View Receipt"
+                        >
+                          <Eye size={13} />
+                          <span>See Bill</span>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -466,6 +483,7 @@ export const ReportsView: React.FC = () => {
                   <th>Total</th>
                   <th>Payment</th>
                   <th>Intern</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,6 +497,17 @@ export const ReportsView: React.FC = () => {
                     <td><strong style={{ color: 'var(--primary-orange)' }}>{formatCurrency(s.total)}</strong></td>
                     <td><span className="badge badge-neutral">{s.paymentMethod}</span></td>
                     <td>{s.internName}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        onClick={() => setActiveReceipt(s)}
+                        className="btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        title="See Bill / View Receipt"
+                      >
+                        <Eye size={13} />
+                        <span>See Bill</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -567,6 +596,132 @@ export const ReportsView: React.FC = () => {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {/* Printable Receipt Modal */}
+      {activeReceipt && (
+        <div className="modal-overlay" onClick={() => setActiveReceipt(null)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '440px', background: '#FFFFFF' }}
+          >
+            <div className="modal-header no-print">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Receipt size={16} color="var(--primary-orange)" />
+                <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Tax Invoice / Bill Preview</h3>
+              </div>
+              <button onClick={() => setActiveReceipt(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} color="var(--text-light)" />
+              </button>
+            </div>
+
+            {/* Printable Receipt Body */}
+            <div className="modal-body printable-receipt" style={{ padding: '24px 20px', fontSize: '12.5px' }}>
+              {/* Header */}
+              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                <img src="/thinkaroo-logo.png" alt="Thinkaroo" style={{ width: '48px', height: '48px', margin: '0 auto 6px', objectFit: 'contain' }} />
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary-orange)', margin: 0 }}>
+                  THINKAROO
+                </h2>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary-blue)', textTransform: 'uppercase' }}>
+                  {settings.schoolName}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {settings.tagline}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                  {settings.address} • Ph: {settings.phone}
+                </div>
+              </div>
+
+              {/* Invoice Meta */}
+              <div style={{
+                borderTop: '1px dashed #CBD5E1',
+                borderBottom: '1px dashed #CBD5E1',
+                padding: '8px 0',
+                marginBottom: '12px',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '4px',
+                fontSize: '11px'
+              }}>
+                <div><strong>Bill No:</strong> {activeReceipt.billNumber}</div>
+                <div style={{ textAlign: 'right' }}><strong>Date:</strong> {formatDateTime(activeReceipt.createdAt || activeReceipt.date)}</div>
+                <div><strong>Customer:</strong> {activeReceipt.customerName}</div>
+                <div style={{ textAlign: 'right' }}><strong>Intern:</strong> {activeReceipt.internName}</div>
+                <div><strong>Payment:</strong> {activeReceipt.paymentMethod}</div>
+                <div style={{ textAlign: 'right' }}><strong>Status:</strong> PAID</div>
+              </div>
+
+              {/* Line Items Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #E2E8F0', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>
+                    <th style={{ padding: '4px 0' }}>Item</th>
+                    <th style={{ padding: '4px 0', textAlign: 'center' }}>Qty</th>
+                    <th style={{ padding: '4px 0', textAlign: 'right' }}>Rate</th>
+                    <th style={{ padding: '4px 0', textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeReceipt.items.map(item => (
+                    <tr key={item.id} style={{ borderBottom: '1px dotted #F1F5F9', fontSize: '12px' }}>
+                      <td style={{ padding: '6px 0' }}>
+                        <div>{item.productName}</div>
+                        <span style={{ fontSize: '9.5px', color: item.stockType === 'OWN' ? 'var(--primary-blue)' : 'var(--primary-orange)' }}>
+                          [{item.stockType}]
+                        </span>
+                      </td>
+                      <td style={{ padding: '6px 0', textAlign: 'center' }}>{item.quantity}</td>
+                      <td style={{ padding: '6px 0', textAlign: 'right' }}>₹{item.unitPrice}</td>
+                      <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>₹{item.lineTotal}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Totals Summary */}
+              <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(activeReceipt.subtotal)}</span>
+                </div>
+                {activeReceipt.discount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--danger)' }}>
+                    <span>Discount:</span>
+                    <span>- {formatCurrency(activeReceipt.discount)}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 800, borderTop: '1px solid #E2E8F0', paddingTop: '6px' }}>
+                  <span>Total Amount Paid:</span>
+                  <span style={{ color: 'var(--primary-orange)' }}>{formatCurrency(activeReceipt.total)}</span>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '12px', borderTop: '1px dashed #CBD5E1' }}>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                  "{settings.billFooterMessage}"
+                </p>
+                <div style={{ fontSize: '10px', color: 'var(--text-light)', marginTop: '4px' }}>
+                  Computer generated bill • Thinkaroo Student Management System
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Footer */}
+            <div className="modal-footer no-print">
+              <button onClick={() => setActiveReceipt(null)} className="btn-secondary">
+                Close
+              </button>
+              <button onClick={() => window.print()} className="btn-primary">
+                <Printer size={15} />
+                <span>Print Bill</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

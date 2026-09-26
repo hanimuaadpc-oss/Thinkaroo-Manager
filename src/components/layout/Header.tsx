@@ -54,59 +54,29 @@ export const Header: React.FC<HeaderProps> = ({
   });
 
   return (
-    <header style={{
-      height: 'var(--header-height)',
-      background: '#FFFFFF',
-      borderBottom: '1px solid var(--border-subtle)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 28px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 30,
-      boxShadow: 'var(--shadow-xs)'
-    }}>
+    <header className="app-header">
       {/* Left side: Hamburger & Title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div className="header-left">
         <button
           onClick={onOpenMobileMenu}
-          style={{
-            padding: '8px',
-            borderRadius: 'var(--radius-sm)',
-            color: 'var(--text-secondary)',
-            display: 'none',
-          }}
           className="mobile-menu-btn"
           aria-label="Toggle menu"
         >
           <Menu size={20} />
         </button>
 
-        <div>
-          <h1 style={{
-            fontSize: '17px',
-            fontWeight: 700,
-            color: 'var(--text-main)',
-            letterSpacing: '-0.02em',
-            margin: 0
-          }}>
+        <div className="header-title-group">
+          <h1 className="header-title">
             {getTabTitle(currentTab)}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1px' }}>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: 'var(--primary-blue)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
+          <div className="header-subtitle">
+            <span className="school-tag">
               <GraduationCap size={13} />
-              Caliph Life School Internal Management
+              <span className="school-tag-text">Caliph Life School Internal Management</span>
+              <span className="school-tag-short">Caliph Life School</span>
             </span>
-            <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>•</span>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span className="subtitle-divider">•</span>
+            <span className="date-tag">
               <Clock size={11} /> {currentDate}
             </span>
           </div>
@@ -114,19 +84,13 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right side: Quick Action "+ New Sale" and Intern Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="header-actions">
         <button
           onClick={onNewSaleClick}
-          className="btn-primary"
-          style={{
-            padding: '8px 16px',
-            fontSize: '13px',
-            fontWeight: 600,
-            boxShadow: '0 2px 4px rgba(255, 107, 0, 0.25)'
-          }}
+          className="btn-primary header-new-sale-btn"
         >
           <Plus size={16} strokeWidth={2.5} />
-          <span>New Sale</span>
+          <span className="btn-text">New Sale</span>
         </button>
 
         {/* Active Intern Dropdown */}
