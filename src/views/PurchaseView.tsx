@@ -91,7 +91,7 @@ export const PurchaseView: React.FC = () => {
   };
 
   // Submit purchase
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validItems = items.filter(it => it.productName.trim().length > 0);
     if (!supplierOrOwner.trim() || validItems.length === 0) return;
@@ -109,7 +109,7 @@ export const PurchaseView: React.FC = () => {
 
     const totalAmount = formattedItems.reduce((acc, it) => acc + it.total, 0);
 
-    addPurchase({
+    const res = await addPurchase({
       type: purchaseType,
       supplierOrOwner: supplierOrOwner.trim(),
       date: purchaseDate,
@@ -121,7 +121,11 @@ export const PurchaseView: React.FC = () => {
       receivedByIntern: currentIntern?.name || 'Intern'
     });
 
-    setIsModalOpen(false);
+    if (res && !res.success) {
+      alert(`Failed to save purchase: ${res.error}`);
+    } else {
+      setIsModalOpen(false);
+    }
   };
 
   // Filtered purchases

@@ -11,10 +11,12 @@ import {
   Receipt,
   Boxes,
   Plus,
-  X
+  X,
+  Database
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import { BusinessSettings } from '../types';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 export const SettingsView: React.FC = () => {
   const { settings, updateSettings, resetDatabase } = useDatabase();
@@ -136,6 +138,54 @@ export const SettingsView: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Supabase Database Integration Card */}
+          <div className="tk-card">
+            <div className="tk-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Database size={18} color="var(--primary-blue)" />
+                <span style={{ fontSize: '14px', fontWeight: 700 }}>Supabase Cloud Database Integration</span>
+              </div>
+              <span className={`badge ${isSupabaseConfigured ? 'badge-success' : 'badge-warning'}`}>
+                {isSupabaseConfigured ? 'CONNECTED' : 'CONFIG READY (.env)'}
+              </span>
+            </div>
+            <div className="tk-card-body">
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                Thinkaroo ERP is integrated with Supabase Data API for real-time cloud data persistence across all 10 tables:
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                {['products', 'purchases', 'sales', 'customers', 'expenses', 'wastages', 'interns', 'stock_movements', 'activity_logs', 'business_settings'].map(table => (
+                  <span key={table} style={{
+                    fontSize: '11px',
+                    fontFamily: 'monospace',
+                    background: '#F1F5F9',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    color: 'var(--text-main)',
+                    border: '1px solid var(--border-subtle)'
+                  }}>
+                    public.{table}
+                  </span>
+                ))}
+              </div>
+
+              <div style={{
+                background: '#F8FAFC',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+                fontSize: '12px',
+                color: 'var(--text-muted)'
+              }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  Database SQL Schema Script:
+                </div>
+                The complete SQL migration script with table schemas, constraints, JSONB columns, timestamps, and Row Level Security (RLS) policies is located at <code style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>supabase/schema.sql</code>. Run this script in your Supabase SQL Editor to initialize all tables.
               </div>
             </div>
           </div>

@@ -40,7 +40,7 @@ export const WastageView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveWastage = (e: React.FormEvent) => {
+  const handleSaveWastage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct || quantity <= 0) return;
 
@@ -50,7 +50,7 @@ export const WastageView: React.FC = () => {
       return;
     }
 
-    addWastage({
+    const res = await addWastage({
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       stockType,
@@ -61,7 +61,11 @@ export const WastageView: React.FC = () => {
       note: note.trim()
     });
 
-    setIsModalOpen(false);
+    if (res && !res.success) {
+      alert(`Failed to save wastage: ${res.error}`);
+    } else {
+      setIsModalOpen(false);
+    }
   };
 
   const totalLossValue = wastages.reduce((sum, w) => sum + w.totalLoss, 0);

@@ -35,11 +35,11 @@ export const InternsView: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleAddIntern = (e: React.FormEvent) => {
+  const handleAddIntern = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
-    const res = addIntern(gmailInput, nameInput, roleInput);
+    const res = await addIntern(gmailInput, nameInput, roleInput);
     if (!res.success) {
       setFormError(res.message);
       return;

@@ -160,11 +160,11 @@ export const SalesView: React.FC = () => {
   }, { ownSales: 0, commissionSales: 0, commissionEarned: 0, ownerPayout: 0 });
 
   // Complete Sale
-  const handleCompleteSale = () => {
+  const handleCompleteSale = async () => {
     if (cart.length === 0) return;
 
     try {
-      const newSale = createSale({
+      const newSale = await createSale({
         customerName: isWalkIn ? 'Walk-in Student' : (customerName || 'Walk-in Student'),
         customerPhone: isWalkIn ? undefined : customerPhone,
         isWalkIn,

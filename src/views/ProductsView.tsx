@@ -12,14 +12,16 @@ import {
   AlertCircle,
   X,
   Check,
-  ChevronDown
+  ChevronDown,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import { Product, StockType } from '../types';
 import { formatCurrency } from '../utils/formatters';
 
 export const ProductsView: React.FC = () => {
-  const { products, addProduct, updateProduct, deleteProduct, settings } = useDatabase();
+  const { products, isLoadingProducts, refetchProducts, addProduct, updateProduct, deleteProduct, settings } = useDatabase();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -29,6 +31,10 @@ export const ProductsView: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  // Async submission state
+  const [isSaving, setIsSaving] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Form State for Add / Edit
   const [formData, setFormData] = useState({
@@ -52,6 +58,7 @@ export const ProductsView: React.FC = () => {
   // Open Edit Modal
   const handleOpenEdit = (p: Product) => {
     setActiveMenuId(null);
+    setSubmitError('');
     setEditingProduct(p);
     setFormData({
       sku: p.sku,
@@ -75,6 +82,7 @@ export const ProductsView: React.FC = () => {
   // Open Add Modal
   const handleOpenAdd = () => {
     setEditingProduct(null);
+    setSubmitError('');
     setFormData({
       sku: `TK-${Math.floor(1000 + Math.random() * 9000)}`,
       name: '',
@@ -117,10 +125,13 @@ export const ProductsView: React.FC = () => {
     });
   };
 
-  // Save Product (Add or Edit existing)
-  const handleSaveProduct = (e: React.FormEvent) => {
+  // Save Product (Direct Supabase INSERT/UPDATE with Verification)
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
+
+    setIsSaving(true);
+    setSubmitError('');
 
     const formattedImages = formData.imagesList.map((url, idx) => ({
       id: `img-${Date.now()}-${idx}`,
@@ -129,8 +140,8 @@ export const ProductsView: React.FC = () => {
     }));
 
     if (editingProduct) {
-      // Update existing
-      updateProduct(editingProduct.id, {
+      // Update existing record in Supabase
+      const res = await updateProduct(editingProduct.id, {
         sku: formData.sku,
         name: formData.name,
         category: formData.category,
@@ -146,10 +157,16 @@ export const ProductsView: React.FC = () => {
         mainImage: formData.mainImage || formData.imagesList[0] || '',
         images: formattedImages,
       }, 'Details updated via Edit Product');
+
+      setIsSaving(false);
+      if (!res.success) {
+        setSubmitError(res.error || 'Failed to update product in Supabase.');
+        return;
+      }
       setEditingProduct(null);
     } else {
-      // Add new
-      addProduct({
+      // Add new record to Supabase
+      const res = await addProduct({
         sku: formData.sku,
         name: formData.name,
         category: formData.category,
@@ -166,7 +183,22 @@ export const ProductsView: React.FC = () => {
         images: formattedImages,
         status: (Number(formData.ownStock) + Number(formData.commissionStock)) <= 0 ? 'OUT_OF_STOCK' : 'ACTIVE',
       });
+
+      setIsSaving(false);
+      if (!res.success) {
+        setSubmitError(res.error || 'Failed to save product to Supabase.');
+        return;
+      }
       setIsAddModalOpen(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}" from Supabase?`)) return;
+    setActiveMenuId(null);
+    const res = await deleteProduct(id);
+    if (!res.success) {
+      alert(`Delete Error: ${res.error}`);
     }
   };
 
@@ -193,20 +225,30 @@ export const ProductsView: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-              Products
+              Products Catalog
             </h2>
             <span className="badge badge-neutral" style={{ fontSize: '12px' }}>
-              {products.length} Items
+              {products.length} Items (Supabase)
             </span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Catalogue of student stationery & commission craft products
+            Direct real-time inventory connected to Supabase Cloud Database
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Refresh button */}
+          <button
+            onClick={() => refetchProducts()}
+            className="btn-secondary"
+            title="Reload products from Supabase"
+            style={{ padding: '8px 12px' }}
+          >
+            <RefreshCw size={15} className={isLoadingProducts ? 'spin-animation' : ''} />
+          </button>
+
           {/* Search box */}
-          <div style={{ position: 'relative', width: '240px' }}>
+          <div style={{ position: 'relative', width: '220px' }}>
             <input
               type="text"
               placeholder="Search products or SKU..."
@@ -218,176 +260,150 @@ export const ProductsView: React.FC = () => {
             <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
           </div>
 
-          <button onClick={handleOpenAdd} className="btn-primary">
-            <Plus size={16} strokeWidth={2.5} />
+          {/* Category Filter */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="form-select"
+            style={{ width: '160px', fontSize: '13px' }}
+          >
+            <option value="ALL">All Categories</option>
+            {settings.categories.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          {/* Add Product Button */}
+          <button
+            onClick={handleOpenAdd}
+            className="btn-primary"
+          >
+            <Plus size={16} />
             <span>Add Product</span>
           </button>
         </div>
       </div>
 
-      {/* Category Pills Filter */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        overflowX: 'auto',
-        paddingBottom: '12px',
-        marginBottom: '16px'
-      }}>
-        <button
-          onClick={() => setSelectedCategory('ALL')}
-          style={{
-            padding: '6px 14px',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '12.5px',
-            fontWeight: selectedCategory === 'ALL' ? 600 : 500,
-            background: selectedCategory === 'ALL' ? 'var(--primary-orange)' : '#FFFFFF',
-            color: selectedCategory === 'ALL' ? '#FFFFFF' : 'var(--text-secondary)',
-            border: selectedCategory === 'ALL' ? '1px solid var(--primary-orange)' : '1px solid var(--border-subtle)',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          All Categories
-        </button>
-        {settings.categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '12.5px',
-              fontWeight: selectedCategory === cat ? 600 : 500,
-              background: selectedCategory === cat ? 'var(--primary-orange)' : '#FFFFFF',
-              color: selectedCategory === cat ? '#FFFFFF' : 'var(--text-secondary)',
-              border: selectedCategory === cat ? '1px solid var(--primary-orange)' : '1px solid var(--border-subtle)',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Products Grid - Base44 Style Premium Cards */}
-      {filteredProducts.length === 0 ? (
-        <div className="tk-card" style={{ padding: '60px 20px', textAlign: 'center' }}>
-          <Tag size={32} color="#94A3B8" style={{ margin: '0 auto 10px' }} />
-          <h3 style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>No products found</h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '4px' }}>
-            Try changing the category filter or search query.
+      {/* Loading state indicator */}
+      {isLoadingProducts ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '48px 20px',
+          background: '#FFFFFF',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)'
+        }}>
+          <Loader2 size={32} color="var(--primary-blue)" style={{ animation: 'spin 1s linear infinite' }} />
+          <div style={{ marginTop: '12px', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            Loading Products directly from Supabase Database...
+          </div>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '48px 20px',
+          background: '#FFFFFF',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)'
+        }}>
+          <Boxes size={48} color="var(--text-light)" style={{ marginBottom: '12px' }} />
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
+            No Products Found in Supabase
+          </h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '400px', margin: '4px auto 16px' }}>
+            Click "Add Product" above to create your first item directly in the Supabase public.products table.
           </p>
+          <button onClick={handleOpenAdd} className="btn-primary">
+            <Plus size={16} />
+            <span>Add First Product</span>
+          </button>
         </div>
       ) : (
+        /* Product Cards Grid */
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
           gap: '16px'
         }}>
-          {filteredProducts.map(product => {
+          {filteredProducts.map((product) => {
             const totalStock = product.ownStock + product.commissionStock;
-            const isOutOfStock = totalStock <= 0;
-            const isLowStock = !isOutOfStock && totalStock <= product.minStockAlert;
+            const isLow = totalStock > 0 && totalStock <= product.minStockAlert;
+            const isOut = totalStock <= 0;
 
             return (
-              <div
-                key={product.id}
-                className="tk-card"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  position: 'relative'
-                }}
-              >
-                {/* Product Image & Badges */}
+              <div key={product.id} className="tk-card" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                {/* Product Image Header */}
                 <div style={{
+                  height: '150px',
+                  background: 'var(--bg-surface-secondary)',
                   position: 'relative',
-                  height: '160px',
-                  background: '#F1F5F9',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  borderTopLeftRadius: 'var(--radius-lg)',
+                  borderTopRightRadius: 'var(--radius-lg)'
                 }}>
                   <img
-                    src={product.mainImage}
+                    src={product.mainImage || 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=500&auto=format&fit=crop&q=60'}
                     alt={product.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=500&auto=format&fit=crop&q=60';
                     }}
                   />
 
-                  {/* Stock Alert Badge */}
-                  <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px' }}>
-                    {isOutOfStock ? (
-                      <span className="badge badge-danger" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                        Out of Stock
-                      </span>
-                    ) : isLowStock ? (
-                      <span className="badge badge-warning" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                        Low Stock
-                      </span>
-                    ) : null}
-
-                    {product.commissionStock > 0 && (
-                      <span className="badge badge-commission" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                        Commission
-                      </span>
+                  {/* Stock Status Tag */}
+                  <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+                    {isOut ? (
+                      <span className="badge badge-danger">Out of Stock</span>
+                    ) : isLow ? (
+                      <span className="badge badge-warning">Low Stock ({totalStock})</span>
+                    ) : (
+                      <span className="badge badge-success">In Stock ({totalStock})</span>
                     )}
                   </div>
 
-                  {/* Three dot actions menu button */}
+                  {/* Action Menu button */}
                   <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuId(activeMenuId === product.id ? null : product.id);
-                      }}
+                      onClick={() => setActiveMenuId(activeMenuId === product.id ? null : product.id)}
                       style={{
                         background: 'rgba(255, 255, 255, 0.9)',
-                        backdropFilter: 'blur(4px)',
                         borderRadius: '50%',
-                        width: '30px',
-                        height: '30px',
+                        padding: '6px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: 'var(--shadow-sm)',
-                        color: 'var(--text-main)'
+                        boxShadow: 'var(--shadow-sm)'
                       }}
                     >
-                      <MoreVertical size={16} />
+                      <MoreVertical size={16} color="var(--text-main)" />
                     </button>
 
-                    {/* Dropdown Menu */}
                     {activeMenuId === product.id && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: '36px',
-                          background: '#FFFFFF',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: 'var(--shadow-lg)',
-                          border: '1px solid var(--border-subtle)',
-                          width: '150px',
-                          padding: '4px',
-                          zIndex: 20
-                        }}
-                      >
+                      <div style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: 'calc(100% + 4px)',
+                        background: '#FFFFFF',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-lg)',
+                        border: '1px solid var(--border-subtle)',
+                        padding: '4px',
+                        zIndex: 20,
+                        minWidth: '140px'
+                      }}>
                         <button
                           onClick={() => handleOpenEdit(product)}
                           style={{
                             width: '100%',
+                            textAlign: 'left',
+                            padding: '6px 10px',
+                            fontSize: '12.5px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            padding: '8px 10px',
-                            fontSize: '12.5px',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'var(--text-main)'
+                            borderRadius: '4px'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
                           <Edit2 size={14} color="var(--primary-blue)" />
@@ -395,43 +411,36 @@ export const ProductsView: React.FC = () => {
                         </button>
 
                         <button
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            setHistoryProduct(product);
-                          }}
+                          onClick={() => { setActiveMenuId(null); setHistoryProduct(product); }}
                           style={{
                             width: '100%',
+                            textAlign: 'left',
+                            padding: '6px 10px',
+                            fontSize: '12.5px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            padding: '8px 10px',
-                            fontSize: '12.5px',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'var(--text-main)'
+                            borderRadius: '4px'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
                           <History size={14} color="var(--primary-orange)" />
-                          <span>Edit History</span>
+                          <span>View History</span>
                         </button>
 
                         <button
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            if (window.confirm(`Are you sure you want to delete "${product.name}"?`)) {
-                              deleteProduct(product.id);
-                            }
-                          }}
+                          onClick={() => handleDeleteProduct(product.id, product.name)}
                           style={{
                             width: '100%',
+                            textAlign: 'left',
+                            padding: '6px 10px',
+                            fontSize: '12.5px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            padding: '8px 10px',
-                            fontSize: '12.5px',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'var(--danger)'
+                            color: 'var(--danger)',
+                            borderRadius: '4px'
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#FEF2F2'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -444,69 +453,47 @@ export const ProductsView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Card Content */}
-                <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-light)', textTransform: 'uppercase', marginBottom: '2px' }}>
-                    {product.category}
+                {/* Product Content */}
+                <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-light)', textTransform: 'uppercase' }}>
+                    {product.category} • <span style={{ fontFamily: 'monospace' }}>{product.sku}</span>
                   </div>
-                  <h4 style={{
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: 'var(--text-main)',
-                    lineHeight: 1.3,
-                    marginBottom: '8px',
-                    flex: 1
-                  }}>
+
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px', marginBottom: '8px' }}>
                     {product.name}
-                  </h4>
+                  </h3>
 
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                    SKU: {product.sku}
-                  </div>
+                  {product.description && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {product.description}
+                    </p>
+                  )}
 
-                  {/* Financial & Stock Details */}
-                  <div style={{
-                    background: '#F8FAFC',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '10px 12px',
-                    border: '1px solid var(--border-light)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Selling Price:</span>
-                      <strong style={{ fontSize: '14px', color: 'var(--primary-orange)' }}>
+                  <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Selling Price</div>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary-orange)' }}>
                         {formatCurrency(product.sellingRate)}
-                      </strong>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Purchase Cost:</span>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                        {formatCurrency(product.purchaseRate)}
-                      </span>
-                    </div>
-
-                    <div style={{
-                      borderTop: '1px solid #E2E8F0',
-                      paddingTop: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Available Stock:</span>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span className="badge badge-own" style={{ fontSize: '10px' }}>
-                          Own: {product.ownStock}
-                        </span>
-                        {product.commissionStock > 0 && (
-                          <span className="badge badge-commission" style={{ fontSize: '10px' }}>
-                            Comm: {product.commissionStock}
-                          </span>
-                        )}
                       </div>
                     </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cost Rate</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        {formatCurrency(product.purchaseRate)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <span className="badge badge-own" style={{ fontSize: '10px' }}>
+                      Own: {product.ownStock} {product.unit}
+                    </span>
+                    {product.commissionStock > 0 && (
+                      <span className="badge badge-commission" style={{ fontSize: '10px' }}>
+                        Comm: {product.commissionStock} {product.unit}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -517,7 +504,7 @@ export const ProductsView: React.FC = () => {
 
       {/* Add / Edit Product Modal */}
       {(isAddModalOpen || editingProduct) && (
-        <div className="modal-overlay" onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); }}>
+        <div className="modal-overlay" onClick={() => { if (!isSaving) { setIsAddModalOpen(false); setEditingProduct(null); } }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <div>
@@ -525,13 +512,34 @@ export const ProductsView: React.FC = () => {
                   {editingProduct ? `Edit Product: ${editingProduct.name}` : 'Add New Product'}
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {editingProduct ? 'Updating this record will preserve its history and historical transactions.' : 'Create an item for the Thinkaroo catalogue.'}
+                  Saves directly to Supabase public.products table.
                 </p>
               </div>
-              <button onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); }}>
+              <button disabled={isSaving} onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); }}>
                 <X size={18} color="var(--text-light)" />
               </button>
             </div>
+
+            {/* Error Banner */}
+            {submitError && (
+              <div style={{
+                margin: '12px 22px 0',
+                padding: '10px 14px',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--danger)',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Supabase Error:</strong> {submitError}
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSaveProduct}>
               <div className="modal-body">
@@ -541,6 +549,7 @@ export const ProductsView: React.FC = () => {
                     <input
                       type="text"
                       required
+                      disabled={isSaving}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="form-input"
@@ -553,6 +562,7 @@ export const ProductsView: React.FC = () => {
                     <input
                       type="text"
                       required
+                      disabled={isSaving}
                       value={formData.sku}
                       onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                       className="form-input"
@@ -562,6 +572,7 @@ export const ProductsView: React.FC = () => {
                   <div className="form-group">
                     <label className="form-label">Category</label>
                     <select
+                      disabled={isSaving}
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="form-select"
@@ -577,6 +588,7 @@ export const ProductsView: React.FC = () => {
                     <input
                       type="number"
                       required
+                      disabled={isSaving}
                       min="0"
                       value={formData.purchaseRate}
                       onChange={(e) => setFormData({ ...formData, purchaseRate: Number(e.target.value) })}
@@ -589,6 +601,7 @@ export const ProductsView: React.FC = () => {
                     <input
                       type="number"
                       required
+                      disabled={isSaving}
                       min="0"
                       value={formData.sellingRate}
                       onChange={(e) => setFormData({ ...formData, sellingRate: Number(e.target.value) })}
@@ -600,6 +613,7 @@ export const ProductsView: React.FC = () => {
                     <label className="form-label">Own Stock (Qty)</label>
                     <input
                       type="number"
+                      disabled={isSaving}
                       min="0"
                       value={formData.ownStock}
                       onChange={(e) => setFormData({ ...formData, ownStock: Number(e.target.value) })}
@@ -611,6 +625,7 @@ export const ProductsView: React.FC = () => {
                     <label className="form-label">Commission Stock (Qty)</label>
                     <input
                       type="number"
+                      disabled={isSaving}
                       min="0"
                       value={formData.commissionStock}
                       onChange={(e) => setFormData({ ...formData, commissionStock: Number(e.target.value) })}
@@ -618,91 +633,11 @@ export const ProductsView: React.FC = () => {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Unit of Measure</label>
-                    <select
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                      className="form-select"
-                    >
-                      <option value="pcs">Pieces (pcs)</option>
-                      <option value="pack">Pack</option>
-                      <option value="set">Set</option>
-                      <option value="box">Box</option>
-                      <option value="book">Book</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Low Stock Alert Threshold</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formData.minStockAlert}
-                      onChange={(e) => setFormData({ ...formData, minStockAlert: Number(e.target.value) })}
-                      className="form-input"
-                    />
-                  </div>
-
-                  {/* Images Section */}
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Product Images & Gallery</label>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                      <input
-                        type="url"
-                        placeholder="Paste image URL here..."
-                        value={formData.newImageUrl}
-                        onChange={(e) => setFormData({ ...formData, newImageUrl: e.target.value })}
-                        className="form-input"
-                      />
-                      <button type="button" onClick={handleAddImage} className="btn-secondary" style={{ flexShrink: 0 }}>
-                        Add Image
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-                      {formData.imagesList.map((url, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            position: 'relative',
-                            width: '64px',
-                            height: '64px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: formData.mainImage === url ? '2px solid var(--primary-orange)' : '1px solid var(--border-subtle)',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <img src={url} alt={`Preview ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(index)}
-                            style={{
-                              position: 'absolute',
-                              top: '2px',
-                              right: '2px',
-                              background: 'rgba(0, 0, 0, 0.6)',
-                              color: '#FFFFFF',
-                              borderRadius: '50%',
-                              width: '16px',
-                              height: '16px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '10px'
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
                     <label className="form-label">Description (Optional)</label>
                     <textarea
                       rows={2}
+                      disabled={isSaving}
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       className="form-textarea"
@@ -715,13 +650,21 @@ export const ProductsView: React.FC = () => {
               <div className="modal-footer">
                 <button
                   type="button"
+                  disabled={isSaving}
                   onClick={() => { setIsAddModalOpen(false); setEditingProduct(null); }}
                   className="btn-secondary"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
-                  {editingProduct ? 'Save Changes' : 'Create Product'}
+                <button type="submit" disabled={isSaving} className="btn-primary">
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={16} className="spin-animation" style={{ animation: 'spin 1s linear infinite' }} />
+                      <span>Saving to Supabase...</span>
+                    </>
+                  ) : (
+                    <span>{editingProduct ? 'Save Changes' : 'Create Product'}</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -748,35 +691,28 @@ export const ProductsView: React.FC = () => {
               {historyProduct.changeHistory && historyProduct.changeHistory.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {historyProduct.changeHistory.map(item => (
-                    <div
-                      key={item.id}
-                      style={{
-                        padding: '10px',
-                        background: '#F8FAFC',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border-light)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '4px' }}>
-                        <strong style={{ color: 'var(--text-main)' }}>{item.intern}</strong>
-                        <span style={{ color: 'var(--text-light)' }}>{new Date(item.timestamp).toLocaleString('en-IN')}</span>
+                    <div key={item.id} style={{
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      background: '#F8FAFC',
+                      border: '1px solid var(--border-subtle)',
+                      fontSize: '12px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                        <span>{item.intern}</span>
+                        <span>{new Date(item.timestamp).toLocaleString()}</span>
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                         {item.details}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: '20px' }}>
-                  No changes recorded yet.
-                </p>
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No history logs for this item.
+                </div>
               )}
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setHistoryProduct(null)} className="btn-secondary">
-                Close
-              </button>
             </div>
           </div>
         </div>

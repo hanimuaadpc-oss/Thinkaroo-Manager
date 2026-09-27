@@ -34,20 +34,24 @@ export const ExpensesView: React.FC = () => {
   const [note, setNote] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleAddExpense = (e: React.FormEvent) => {
+  const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (amount <= 0) return;
 
-    addExpense({
+    const res = await addExpense({
       category,
       amount: Number(amount),
       date,
       note: note.trim() || 'General expense'
     });
 
-    setIsModalOpen(false);
-    setAmount(100);
-    setNote('');
+    if (res && !res.success) {
+      alert(`Failed to save expense: ${res.error}`);
+    } else {
+      setIsModalOpen(false);
+      setAmount(100);
+      setNote('');
+    }
   };
 
   // Filtered expenses
