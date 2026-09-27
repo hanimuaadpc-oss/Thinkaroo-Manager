@@ -180,7 +180,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [customers, setCustomers] = useState<Customer[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.CUSTOMERS, initialCustomers));
   const [expenses, setExpenses] = useState<Expense[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.EXPENSES, initialExpenses));
   const [wastages, setWastages] = useState<Wastage[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.WASTAGES, initialWastages));
-  const [interns, setInterns] = useState<Intern[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.INTERNS, initialInterns));
+  // Interns always start from seed data so login works immediately, even before Supabase loads
+  const [interns, setInterns] = useState<Intern[]>(() => loadState(STORAGE_KEYS.INTERNS, initialInterns));
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.MOVEMENTS, initialMovements));
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.ACTIVITY, initialActivityLogs));
   const [settings, setSettings] = useState<BusinessSettings>(() => loadState(STORAGE_KEYS.SETTINGS, initialSettings));
@@ -271,12 +272,25 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setWastages(dbWastages.map(mapWastageFromDb));
       }
 
-      // 7. Interns
+      // 7. Interns — if Supabase table is empty, auto-seed with default interns
       const { data: dbInterns, error: intErr } = await supabase.from('interns').select('*');
       if (intErr) {
         console.error('Error fetching interns:', intErr.message);
-      } else if (dbInterns) {
+        // Keep seed data as fallback
+      } else if (dbInterns && dbInterns.length > 0) {
         setInterns(dbInterns.map(mapInternFromDb));
+      } else {
+        // Supabase interns table is empty — seed it with default interns
+        console.log('Interns table empty in Supabase, seeding default interns...');
+        const seedPayload = initialInterns.map(mapInternToDb);
+        const { error: seedErr } = await supabase.from('interns').insert(seedPayload);
+        if (seedErr) {
+          console.error('Failed to seed interns to Supabase:', seedErr.message);
+        } else {
+          console.log('Default interns seeded to Supabase successfully.');
+        }
+        // Keep using the local seed data in state
+        setInterns(initialInterns);
       }
 
       // 8. Stock Movements
