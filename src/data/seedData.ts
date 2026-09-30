@@ -45,6 +45,7 @@ export const initialInterns: Intern[] = [
     status: 'ENABLED',
     addedDate: '2026-08-01T09:00:00Z',
     lastLogin: '2026-09-12T10:15:00Z',
+    commissionBalance: 0,
   },
   {
     id: 'intern-2',
@@ -54,6 +55,7 @@ export const initialInterns: Intern[] = [
     status: 'ENABLED',
     addedDate: '2026-08-15T11:30:00Z',
     lastLogin: '2026-09-12T14:40:00Z',
+    commissionBalance: 0,
   },
   {
     id: 'intern-3',
@@ -63,6 +65,7 @@ export const initialInterns: Intern[] = [
     status: 'ENABLED',
     addedDate: '2026-08-15T11:30:00Z',
     lastLogin: '2026-09-11T16:20:00Z',
+    commissionBalance: 0,
   },
   {
     id: 'intern-4',
@@ -72,6 +75,7 @@ export const initialInterns: Intern[] = [
     status: 'ENABLED',
     addedDate: '2026-08-20T10:00:00Z',
     lastLogin: '2026-09-12T16:05:00Z',
+    commissionBalance: 0,
   },
   {
     id: 'intern-5',
@@ -81,6 +85,7 @@ export const initialInterns: Intern[] = [
     status: 'DISABLED',
     addedDate: '2026-09-01T14:00:00Z',
     lastLogin: '2026-09-02T12:00:00Z',
+    commissionBalance: 0,
   }
 ];
 

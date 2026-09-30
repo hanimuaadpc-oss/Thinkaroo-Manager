@@ -246,7 +246,8 @@ export function mapInternFromDb(db: any): Intern {
     role: db.role || 'INTERN',
     status: db.status || 'ENABLED',
     addedDate: db.added_date,
-    lastLogin: db.last_login
+    lastLogin: db.last_login,
+    commissionBalance: Number(db.commission_balance || 0)
   };
 }
 
@@ -258,7 +259,8 @@ export function mapInternToDb(i: Intern) {
     role: i.role,
     status: i.status,
     added_date: i.addedDate,
-    last_login: i.lastLogin
+    last_login: i.lastLogin,
+    commission_balance: i.commissionBalance ?? 0
   };
 }
 

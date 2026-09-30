@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Mail, ArrowRight, Lock, KeyRound, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Mail, ArrowRight, Lock, ShieldAlert } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 
 export const LoginModal: React.FC = () => {
   const { loginWithGmail, settings } = useDatabase();
   const [emailInput, setEmailInput] = useState('');
-  const [pinInput, setPinInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
@@ -14,13 +13,7 @@ export const LoginModal: React.FC = () => {
 
     const cleanEmail = emailInput.trim().toLowerCase();
     if (!cleanEmail) {
-      setErrorMessage('Please enter your permitted Gmail address');
-      return;
-    }
-
-    // Security PIN check: default 2026 or 1234
-    if (pinInput.trim() && pinInput.trim() !== '2026' && pinInput.trim() !== '1234') {
-      setErrorMessage('Invalid Access PIN code. Please verify with your system administrator.');
+      setErrorMessage('Please enter your Gmail address to continue');
       return;
     }
 
@@ -135,15 +128,12 @@ export const LoginModal: React.FC = () => {
             </div>
           )}
 
-          <div style={{ textAlign: 'left', marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              Permitted Gmail Address *
-            </label>
+          <div style={{ textAlign: 'left', marginBottom: '18px' }}>
             <div style={{ position: 'relative' }}>
               <input
                 type="email"
                 required
-                placeholder="e.g. hiba@caliphschool.com"
+                placeholder="Enter your school Gmail address"
                 value={emailInput}
                 onChange={(e) => {
                   setEmailInput(e.target.value);
@@ -158,35 +148,6 @@ export const LoginModal: React.FC = () => {
                 }}
               />
               <Mail 
-                size={16} 
-                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} 
-              />
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'left', marginBottom: '18px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              Security Access PIN (Optional)
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="password"
-                maxLength={6}
-                placeholder="Enter 4-digit PIN (Default: 2026)"
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  setErrorMessage('');
-                }}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px 10px 36px',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '13.5px'
-                }}
-              />
-              <KeyRound 
                 size={16} 
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} 
               />

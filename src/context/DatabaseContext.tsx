@@ -988,10 +988,46 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     setSales(prev => [savedSale, ...prev]);
+
+    // ── Intern Commission: 10% of total selling price for all items in this bill ──
+    // Commission = 10% × (quantity × unitPrice) per item (NOT margin-based)
+    const internSellingTotal = saleItems.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0
+    );
+    const internCommissionEarned = parseFloat((internSellingTotal * 0.1).toFixed(2));
+
+    if (currentIntern && internCommissionEarned > 0) {
+      const updatedBalance = parseFloat(
+        ((currentIntern.commissionBalance ?? 0) + internCommissionEarned).toFixed(2)
+      );
+      const updatedInternLocal = { ...currentIntern, commissionBalance: updatedBalance };
+
+      // Update local state for current intern and interns list
+      setCurrentIntern(updatedInternLocal);
+      setInterns(prev =>
+        prev.map(i => i.id === currentIntern.id ? updatedInternLocal : i)
+      );
+
+      // Persist to Supabase
+      if (isSupabaseConfigured) {
+        supabase
+          .from('interns')
+          .update({ commission_balance: updatedBalance })
+          .eq('id', currentIntern.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Supabase Intern Commission Update Error:', error.message, error);
+            }
+          });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     logActivity(
       'RECORDED_SALE',
       'SALE',
-      `Completed bill ${billNumber} for ₹${finalTotal} (Own: ₹${ownSalesTotal}, Comm: ₹${commissionSalesTotal}, Comm Earned: ₹${commissionEarnedTotal})`,
+      `Completed bill ${billNumber} for ₹${finalTotal} (Own: ₹${ownSalesTotal}, Comm: ₹${commissionSalesTotal}, Comm Earned: ₹${commissionEarnedTotal}, Intern Commission: ₹${internCommissionEarned})`,
       savedSale.id
     );
 
@@ -1271,6 +1307,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       role,
       status: 'ENABLED',
       addedDate: new Date().toISOString(),
+      commissionBalance: 0,
     };
 
     if (isSupabaseConfigured) {

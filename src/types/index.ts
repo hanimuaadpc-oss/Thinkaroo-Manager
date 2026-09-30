@@ -184,6 +184,7 @@ export interface Intern {
   status: 'ENABLED' | 'DISABLED';
   addedDate: string;
   lastLogin?: string;
+  commissionBalance: number; // Cumulative 10% of selling price from all sales made by this intern
 }
 
 export interface ActivityLog {

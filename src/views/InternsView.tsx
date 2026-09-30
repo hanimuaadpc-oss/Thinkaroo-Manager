@@ -12,7 +12,8 @@ import {
   Mail,
   User,
   X,
-  Lock
+  Lock,
+  Coins
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import { formatDate, formatDateTime } from '../utils/formatters';
@@ -150,6 +151,7 @@ export const InternsView: React.FC = () => {
                 <th>Approved Gmail</th>
                 <th>Role</th>
                 <th>Access Status</th>
+                <th>Commission Balance</th>
                 <th>Added Date</th>
                 <th>Last Login</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -158,7 +160,7 @@ export const InternsView: React.FC = () => {
             <tbody>
               {filteredInterns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-light)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-light)' }}>
                     No intern accounts found
                   </td>
                 </tr>
@@ -217,6 +219,18 @@ export const InternsView: React.FC = () => {
                         {intern.status === 'ENABLED' ? <CheckCircle size={12} /> : <XCircle size={12} />}
                         <span>{intern.status}</span>
                       </button>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Coins size={13} style={{ color: 'var(--primary-orange)', flexShrink: 0 }} />
+                        <span style={{
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: (intern.commissionBalance ?? 0) > 0 ? 'var(--success)' : 'var(--text-muted)'
+                        }}>
+                          ₹{(intern.commissionBalance ?? 0).toFixed(2)}
+                        </span>
+                      </div>
                     </td>
                     <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {formatDate(intern.addedDate)}

@@ -115,8 +115,12 @@ CREATE TABLE IF NOT EXISTS public.interns (
   role TEXT DEFAULT 'INTERN',
   status TEXT DEFAULT 'ENABLED',
   added_date TIMESTAMPTZ DEFAULT NOW(),
-  last_login TIMESTAMPTZ
+  last_login TIMESTAMPTZ,
+  commission_balance NUMERIC(12,2) DEFAULT 0
 );
+
+-- Add commission_balance column if it doesn't already exist (for existing installs)
+ALTER TABLE public.interns ADD COLUMN IF NOT EXISTS commission_balance NUMERIC(12,2) DEFAULT 0;
 
 -- 8. STOCK MOVEMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.stock_movements (
