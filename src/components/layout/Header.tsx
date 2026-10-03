@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { 
   Menu, 
   Plus, 
-  Search, 
-  Bell, 
-  UserCheck, 
   ChevronDown, 
-  Clock, 
-  Sparkles,
-  ShieldAlert,
-  GraduationCap
+  Clock,
+  GraduationCap,
+  LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { NavTab } from './Sidebar';
@@ -26,8 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   onNewSaleClick,
 }) => {
-  const { currentIntern, interns, switchIntern, logout } = useDatabase();
-  const [showInternMenu, setShowInternMenu] = useState(false);
+  const { currentIntern, logout } = useDatabase();
+  const [showMenu, setShowMenu] = useState(false);
 
   const getTabTitle = (tab: NavTab) => {
     switch (tab) {
@@ -52,6 +49,11 @@ export const Header: React.FC<HeaderProps> = ({
     month: 'short',
     year: 'numeric'
   });
+
+  const roleLabel =
+    currentIntern?.role === 'ADMIN'       ? 'Faculty Mentor / Admin' :
+    currentIntern?.role === 'COORDINATOR' ? 'Student Coordinator' :
+    'Student Intern';
 
   return (
     <header className="app-header">
@@ -83,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right side: Quick Action "+ New Sale" and Intern Switcher */}
+      {/* Right side: Quick Action "New Sale" and Profile dropdown */}
       <div className="header-actions">
         <button
           onClick={onNewSaleClick}
@@ -93,10 +95,10 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="btn-text">New Sale</span>
         </button>
 
-        {/* Active Intern Dropdown */}
+        {/* Profile Dropdown — shows ONLY the current user + Sign Out */}
         <div style={{ position: 'relative' }}>
           <button
-            onClick={() => setShowInternMenu(!showInternMenu)}
+            onClick={() => setShowMenu(!showMenu)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -130,92 +132,110 @@ export const Header: React.FC<HeaderProps> = ({
             <ChevronDown size={14} color="#64748B" />
           </button>
 
-          {showInternMenu && (
-            <div style={{
-              position: 'absolute',
-              right: 0,
-              top: 'calc(100% + 6px)',
-              width: '260px',
-              background: '#FFFFFF',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-subtle)',
-              boxShadow: 'var(--shadow-lg)',
-              padding: '8px',
-              zIndex: 50
-            }}>
-              <div style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-light)', marginBottom: '6px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-light)', textTransform: 'uppercase' }}>
-                  Logged in as Approved Intern
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
-                  {currentIntern?.name}
-                </div>
-                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                  {currentIntern?.email}
-                </div>
-              </div>
+          {showMenu && (
+            <>
+              {/* Backdrop to close on outside click */}
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 49 }}
+                onClick={() => setShowMenu(false)}
+              />
 
-              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', padding: '4px 10px' }}>
-                Switch Intern (Active Desk)
-              </div>
-
-              <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                {interns.filter(i => i.status === 'ENABLED').map(intern => (
-                  <button
-                    key={intern.id}
-                    onClick={() => {
-                      switchIntern(intern.id);
-                      setShowInternMenu(false);
-                    }}
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '7px 10px',
-                      borderRadius: 'var(--radius-sm)',
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                top: 'calc(100% + 6px)',
+                width: '260px',
+                background: '#FFFFFF',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: 'var(--shadow-lg)',
+                padding: '8px',
+                zIndex: 50
+              }}>
+                {/* Current user info — no other users shown here */}
+                <div style={{
+                  padding: '10px 12px',
+                  borderBottom: '1px solid var(--border-light)',
+                  marginBottom: '6px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '6px'
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      background: 'var(--primary-orange)',
+                      color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: intern.id === currentIntern?.id ? 'var(--primary-blue-light)' : 'transparent',
-                      color: intern.id === currentIntern?.id ? 'var(--primary-blue)' : 'var(--text-secondary)',
-                      fontSize: '12.5px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{intern.name}</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{intern.email}</div>
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      flexShrink: 0,
+                    }}>
+                      {currentIntern?.name?.charAt(0) || 'I'}
                     </div>
-                    {intern.id === currentIntern?.id && (
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary-blue)' }}>ACTIVE</span>
-                    )}
-                  </button>
-                ))}
-              </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {currentIntern?.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                        {roleLabel}
+                      </div>
+                    </div>
+                  </div>
 
-              <div style={{ borderTop: '1px solid var(--border-light)', marginTop: '6px', paddingTop: '6px' }}>
+                  {/* Verified badge */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--success-light)',
+                    border: '1px solid var(--success-border)',
+                    fontSize: '10.5px',
+                    fontWeight: 600,
+                    color: 'var(--success)',
+                  }}>
+                    <ShieldCheck size={11} />
+                    Verified Session
+                  </div>
+                </div>
+
+                {/* Sign Out — the ONLY action in this dropdown */}
                 <button
                   onClick={() => {
-                    setShowInternMenu(false);
+                    setShowMenu(false);
                     logout();
                   }}
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '8px 10px',
+                    padding: '9px 12px',
                     color: 'var(--danger)',
                     fontSize: '12.5px',
                     fontWeight: 600,
                     borderRadius: 'var(--radius-sm)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '8px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#FEF2F2'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
-                  Sign Out of Session
+                  <LogOut size={14} />
+                  Sign Out
                 </button>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>

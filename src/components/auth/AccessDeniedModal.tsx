@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldX, AlertCircle, ArrowLeft, Mail, School } from 'lucide-react';
+import { ShieldX, AlertCircle } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 
 export const AccessDeniedModal: React.FC = () => {
-  const { attemptedEmail, clearAccessDenied } = useDatabase();
+  const { clearAccessDenied } = useDatabase();
 
   return (
     <div style={{
@@ -20,14 +20,14 @@ export const AccessDeniedModal: React.FC = () => {
       <div style={{
         background: '#FFFFFF',
         borderRadius: 'var(--radius-xl)',
-        maxWidth: '460px',
+        maxWidth: '420px',
         width: '100%',
         padding: '36px 30px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
         textAlign: 'center',
         border: '1px solid #FECACA'
       }}>
-        {/* Red Warning Badge Icon */}
+        {/* Warning icon */}
         <div style={{
           width: '64px',
           height: '64px',
@@ -43,43 +43,13 @@ export const AccessDeniedModal: React.FC = () => {
           <ShieldX size={34} strokeWidth={2.2} />
         </div>
 
-        <h2 style={{
-          fontSize: '20px',
-          fontWeight: 800,
-          color: 'var(--text-main)',
-          letterSpacing: '-0.02em',
-          marginBottom: '6px'
-        }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
           Access Denied
         </h2>
 
-        <p style={{
-          fontSize: '13px',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.5,
-          marginBottom: '18px'
-        }}>
-          This Gmail account is not approved for Thinkaroo internal management.
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '18px' }}>
+          This account is not approved for Thinkaroo internal management access.
         </p>
-
-        {attemptedEmail && (
-          <div style={{
-            background: '#F8FAFC',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '10px 14px',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: 'var(--text-main)',
-            marginBottom: '18px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Mail size={16} color="#64748B" />
-            <span>{attemptedEmail}</span>
-          </div>
-        )}
 
         <div style={{
           background: '#FFFBEB',
@@ -96,20 +66,17 @@ export const AccessDeniedModal: React.FC = () => {
         }}>
           <AlertCircle size={18} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            <strong>Caliph Life School Policy:</strong> Only student interns and faculty mentors added to the Interns whitelist by the Thinkaroo administrator can access this operational system.
+            <strong>Caliph Life School Policy:</strong> Only approved student interns and faculty mentors can access this system.
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button
-            onClick={clearAccessDenied}
-            className="btn-primary"
-            style={{ width: '100%', padding: '10px', justifyContent: 'center', fontSize: '13.5px' }}
-          >
-            <ArrowLeft size={16} />
-            <span>Try Another Approved Account</span>
-          </button>
-        </div>
+        <button
+          onClick={clearAccessDenied}
+          className="btn-primary"
+          style={{ width: '100%', padding: '10px', justifyContent: 'center', fontSize: '13.5px' }}
+        >
+          Try Again
+        </button>
       </div>
     </div>
   );

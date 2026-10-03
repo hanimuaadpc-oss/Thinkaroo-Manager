@@ -5,14 +5,9 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  Clock,
-  Shield,
   Trash2,
   Activity,
-  Mail,
-  User,
   X,
-  Lock,
   Coins
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
@@ -30,7 +25,7 @@ export const InternsView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'interns' | 'activity'>('interns');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [gmailInput, setGmailInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [roleInput, setRoleInput] = useState<'INTERN' | 'COORDINATOR' | 'ADMIN'>('INTERN');
   const [formError, setFormError] = useState('');
@@ -40,27 +35,27 @@ export const InternsView: React.FC = () => {
     e.preventDefault();
     setFormError('');
 
-    const res = await addIntern(gmailInput, nameInput, roleInput);
+    const res = await addIntern(emailInput, nameInput, roleInput);
     if (!res.success) {
       setFormError(res.message);
       return;
     }
 
     setIsModalOpen(false);
-    setGmailInput('');
+    setEmailInput('');
     setNameInput('');
   };
 
-  const filteredInterns = interns.filter(i => {
-    return i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           i.email.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredInterns = interns.filter(i =>
+    i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    i.role.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const filteredLogs = activityLogs.filter(l => {
-    return l.internName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           l.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           l.action.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredLogs = activityLogs.filter(l =>
+    l.internName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.action.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="page-wrapper">
@@ -75,10 +70,10 @@ export const InternsView: React.FC = () => {
       }}>
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-            Intern Access & Activity History
+            Intern Access &amp; Activity History
           </h2>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Approved Gmail accounts for Caliph Life School student interns
+            View approved intern accounts for Caliph Life School student interns
           </p>
         </div>
 
@@ -131,7 +126,7 @@ export const InternsView: React.FC = () => {
         <div style={{ position: 'relative', width: '260px' }}>
           <input
             type="text"
-            placeholder={activeTab === 'interns' ? "Search intern or email..." : "Search action or keyword..."}
+            placeholder={activeTab === 'interns' ? 'Search by name or role…' : 'Search action or keyword…'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="form-input"
@@ -142,25 +137,24 @@ export const InternsView: React.FC = () => {
       </div>
 
       {activeTab === 'interns' ? (
-        /* Approved Interns Whitelist Table */
+        /* Approved Interns Table — no email column shown */
         <div className="tk-table-container">
           <table className="tk-table">
             <thead>
               <tr>
                 <th>Intern Name</th>
-                <th>Approved Gmail</th>
                 <th>Role</th>
                 <th>Access Status</th>
                 <th>Commission Balance</th>
                 <th>Added Date</th>
-                <th>Last Login</th>
+                <th>Last Activity</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredInterns.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-light)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-light)' }}>
                     No intern accounts found
                   </td>
                 </tr>
@@ -190,9 +184,6 @@ export const InternsView: React.FC = () => {
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                      {intern.email}
                     </td>
                     <td>
                       <span className="badge badge-neutral" style={{ fontSize: '10.5px' }}>
@@ -288,7 +279,6 @@ export const InternsView: React.FC = () => {
                     </td>
                     <td>
                       <strong style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{log.internName}</strong>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-light)' }}>{log.internEmail}</div>
                     </td>
                     <td>
                       <span className="badge badge-neutral" style={{ fontSize: '10.5px' }}>
@@ -319,7 +309,7 @@ export const InternsView: React.FC = () => {
               <div>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Approve Intern Account</h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Whitelist a student's Gmail address to grant application access
+                  Add an approved Caliph account to grant application access
                 </p>
               </div>
               <button onClick={() => setIsModalOpen(false)}>
@@ -344,18 +334,15 @@ export const InternsView: React.FC = () => {
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Gmail Address *</label>
+                  <label className="form-label">Caliph Email Address *</label>
                   <input
                     type="email"
                     required
-                    placeholder="student.name@caliphschool.com or @gmail.com"
-                    value={gmailInput}
-                    onChange={(e) => setGmailInput(e.target.value)}
+                    placeholder="name@caliphschool.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
                     className="form-input"
                   />
-                  <span style={{ fontSize: '11px', color: 'var(--text-light)', display: 'block', marginTop: '4px' }}>
-                    Only whitelisted Gmail addresses can sign in.
-                  </span>
                 </div>
 
                 <div className="form-group">

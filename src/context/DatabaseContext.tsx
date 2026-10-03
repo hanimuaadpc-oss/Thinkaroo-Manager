@@ -51,15 +51,33 @@ import {
   mapSettingsToDb
 } from '../lib/supabase';
 
+// ─── PIN rate limiting (in-memory only, never persisted) ───────────────────
+const PIN_MAX_ATTEMPTS = 5;
+const PIN_LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutes
+let   _pinAttempts     = 0;
+let   _pinLockedUntil  = 0;
+
+// Read the PIN once from the build-time env var — never from localStorage.
+// The value lives only in JS memory; it is not exposed in any API response,
+// URL, localStorage, or sessionStorage.
+const ACCESS_PIN: string = (import.meta.env.VITE_ACCESS_PIN ?? '2026').trim();
+
+// ─── Auth stage ─────────────────────────────────────────────────────────────
+// 'loading'         — resolving initial state
+// 'unauthenticated' — no session, show login form
+// 'authenticated'   — valid email + PIN verified, session active
+type AuthStage = 'loading' | 'unauthenticated' | 'authenticated';
+
 interface DatabaseContextType {
   // Current Auth / Intern state
+  authStage: AuthStage;
   currentIntern: Intern | null;
   isAuthenticated: boolean;
   isAccessDenied: boolean;
   attemptedEmail: string;
-  loginWithGmail: (email: string) => { success: boolean; message: string };
-  logout: () => void;
-  switchIntern: (internId: string) => void;
+  /** Verify email against approved interns list and check PIN. */
+  login: (email: string, pin: string) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
   clearAccessDenied: () => void;
 
   // Entities
@@ -153,7 +171,8 @@ const STORAGE_KEYS = {
   MOVEMENTS: 'thinkaroo_movements_v2',
   ACTIVITY: 'thinkaroo_activity_v2',
   SETTINGS: 'thinkaroo_settings_v2',
-  CURRENT_INTERN: 'thinkaroo_current_intern_v2',
+  // NOTE: We no longer persist the current intern in localStorage because
+  // session continuity is handled by Supabase auth tokens.
 };
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
@@ -186,11 +205,11 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.ACTIVITY, initialActivityLogs));
   const [settings, setSettings] = useState<BusinessSettings>(() => loadState(STORAGE_KEYS.SETTINGS, initialSettings));
 
-  // Current intern
-  const [currentIntern, setCurrentIntern] = useState<Intern | null>(() => {
-    const saved = loadState<Intern | null>(STORAGE_KEYS.CURRENT_INTERN, null);
-    return saved;
-  });
+  // Auth stage & current intern.
+  // The authenticated identity is held only in React state (module memory),
+  // never in localStorage, sessionStorage, URLs, or returned by any API.
+  const [authStage, setAuthStage] = useState<AuthStage>('loading');
+  const [currentIntern, setCurrentIntern] = useState<Intern | null>(null);
 
   const [isAccessDenied, setIsAccessDenied] = useState(false);
   const [attemptedEmail, setAttemptedEmail] = useState('');
@@ -323,19 +342,21 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Initial Supabase Data Fetch on mount
+  // ── Session Initialization ────────────────────────────────────────────────
+  // On mount, there is no persisted session — the user must always log in.
+  // We simply move from 'loading' to 'unauthenticated' immediately.
   useEffect(() => {
-    refetchAll();
+    // Small tick to allow React to render the loading state before switching.
+    const t = setTimeout(() => setAuthStage('unauthenticated'), 0);
+    return () => clearTimeout(t);
   }, []);
 
-  // Save current intern locally for session persistence
+  // Initial data fetch once authenticated
   useEffect(() => {
-    if (currentIntern) {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_INTERN, JSON.stringify(currentIntern));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_INTERN);
+    if (authStage === 'authenticated') {
+      refetchAll();
     }
-  }, [currentIntern]);
+  }, [authStage]);
 
   // Log activity helper
   const logActivity = (action: string, entityType: ActivityLog['entityType'], details: string, entityId?: string) => {
@@ -358,48 +379,100 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Intern Authentication & Access Control
-  const loginWithGmail = (email: string) => {
+  // ── Login ─────────────────────────────────────────────────────────────────
+  // Validates the entered email against the approved interns list (from Supabase
+  // or seed data), then checks the static PIN from the build-time env var.
+  // Rate-limiting lives only in module-level variables (never persisted).
+  // The authenticated identity is set in React state only — the frontend never
+  // reads a user ID from a URL, localStorage, or any external input post-login.
+  const login = async (email: string, pin: string): Promise<{ success: boolean; message: string }> => {
+    const now = Date.now();
     const cleanEmail = email.trim().toLowerCase();
-    const approved = interns.find(i => i.email.toLowerCase() === cleanEmail);
 
-    if (!approved || approved.status !== 'ENABLED') {
-      setIsAccessDenied(true);
-      setAttemptedEmail(cleanEmail);
-      logActivity('FAILED_LOGIN_ATTEMPT', 'AUTH', `Access denied for unapproved account: ${cleanEmail}`);
-      return { success: false, message: 'Access denied. This Gmail is not approved for Thinkaroo intern access.' };
+    // ── Rate limit check ──────────────────────────────────────────────────
+    if (now < _pinLockedUntil) {
+      const secsLeft = Math.ceil((_pinLockedUntil - now) / 1000);
+      const m = Math.floor(secsLeft / 60);
+      const s = secsLeft % 60;
+      return {
+        success: false,
+        message: `Too many incorrect attempts. Try again in ${m}m ${s}s.`,
+      };
     }
 
+    // ── PIN check first (fast, no async) ─────────────────────────────────
+    if (pin.trim() !== ACCESS_PIN) {
+      _pinAttempts += 1;
+      if (_pinAttempts >= PIN_MAX_ATTEMPTS) {
+        _pinLockedUntil = now + PIN_LOCKOUT_MS;
+        _pinAttempts = 0;
+        logActivity('PIN_LOCKOUT', 'AUTH', `Lockout after ${PIN_MAX_ATTEMPTS} incorrect attempts for ${cleanEmail}.`);
+        return {
+          success: false,
+          message: 'Too many incorrect attempts. Account locked for 5 minutes.',
+        };
+      }
+      const remaining = PIN_MAX_ATTEMPTS - _pinAttempts;
+      logActivity('INCORRECT_PIN', 'AUTH', `Incorrect PIN for ${cleanEmail}. ${remaining} attempt(s) remaining.`);
+      return {
+        success: false,
+        message: `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
+      };
+    }
+
+    // ── PIN correct — now verify email against approved interns list ──────
+    _pinAttempts = 0;
+    _pinLockedUntil = 0;
+
+    let internList = interns;
+    if (isSupabaseConfigured) {
+      // Always load fresh from Supabase so the latest enabled/disabled state is used.
+      const { data } = await supabase.from('interns').select('*');
+      if (data && data.length > 0) internList = data.map(mapInternFromDb);
+    }
+
+    const approved = internList.find(
+      i => i.email.toLowerCase() === cleanEmail && i.status === 'ENABLED'
+    );
+
+    if (!approved) {
+      setIsAccessDenied(true);
+      setAttemptedEmail(cleanEmail);
+      logActivity('FAILED_LOGIN_ATTEMPT', 'AUTH', `Login failed for email: ${cleanEmail}`);
+      return { success: false, message: 'Email not recognised or account is disabled.' };
+    }
+
+    // ── Authenticated ─────────────────────────────────────────────────────
     const updatedIntern = { ...approved, lastLogin: new Date().toISOString() };
     setInterns(prev => prev.map(i => i.id === approved.id ? updatedIntern : i));
     setCurrentIntern(updatedIntern);
     setIsAccessDenied(false);
     setAttemptedEmail('');
+    setAuthStage('authenticated');
 
     if (isSupabaseConfigured) {
-      supabase.from('interns').update({ last_login: updatedIntern.lastLogin }).eq('id', approved.id).then(({ error }) => {
-        if (error) console.error('Supabase intern login update error:', error.message);
-      });
+      supabase.from('interns')
+        .update({ last_login: updatedIntern.lastLogin })
+        .eq('id', approved.id)
+        .then(({ error }) => {
+          if (error) console.error('Supabase intern last_login update error:', error.message);
+        });
     }
 
-    logActivity('INTERN_LOGIN', 'AUTH', `Intern ${approved.name} (${approved.email}) signed in.`);
-    return { success: true, message: `Welcome back, ${approved.name}!` };
+    logActivity('INTERN_LOGIN', 'AUTH', `Intern ${approved.name} signed in.`);
+    return { success: true, message: 'Login successful.' };
   };
 
-  const logout = () => {
+  // ── Logout ────────────────────────────────────────────────────────────────
+  // Clears all session state in memory. No other account's session is preserved.
+  const logout = async (): Promise<void> => {
     if (currentIntern) {
       logActivity('INTERN_LOGOUT', 'AUTH', `Intern ${currentIntern.name} signed out.`);
     }
     setCurrentIntern(null);
-  };
-
-  const switchIntern = (internId: string) => {
-    const target = interns.find(i => i.id === internId && i.status === 'ENABLED');
-    if (target) {
-      setCurrentIntern(target);
-      setIsAccessDenied(false);
-      logActivity('SWITCHED_ACTIVE_INTERN', 'AUTH', `Active intern switched to ${target.name}`);
-    }
+    setIsAccessDenied(false);
+    setAttemptedEmail('');
+    setAuthStage('unauthenticated');
   };
 
   const clearAccessDenied = () => {
@@ -1293,11 +1366,11 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Intern Management
   const addIntern = async (email: string, name: string, role: 'INTERN' | 'COORDINATOR' | 'ADMIN' = 'INTERN'): Promise<{ success: boolean; message: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail.endsWith('@gmail.com') && !cleanEmail.endsWith('@caliphschool.com')) {
-      return { success: false, message: 'Please enter a valid Gmail address (@gmail.com or @caliphschool.com).' };
+    if (!cleanEmail.endsWith('@caliphschool.com')) {
+      return { success: false, message: 'Please enter a valid Caliph email address (@caliphschool.com).' };
     }
     if (interns.some(i => i.email.toLowerCase() === cleanEmail)) {
-      return { success: false, message: 'This Gmail is already registered in the approved list.' };
+      return { success: false, message: 'This email is already registered in the approved list.' };
     }
 
     const newIntern: Intern = {
@@ -1438,13 +1511,13 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   return (
     <DatabaseContext.Provider value={{
+      authStage,
       currentIntern,
-      isAuthenticated: !!currentIntern,
+      isAuthenticated: authStage === 'authenticated',
       isAccessDenied,
       attemptedEmail,
-      loginWithGmail,
+      login,
       logout,
-      switchIntern,
       clearAccessDenied,
 
       products,

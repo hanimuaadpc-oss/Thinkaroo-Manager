@@ -644,6 +644,157 @@ export const ProductsView: React.FC = () => {
                       placeholder="Brief notes on dimensions, paper quality, etc."
                     />
                   </div>
+
+                  {/* ── Image Management Section ── */}
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ImageIcon size={14} />
+                      Product Images (URL)
+                    </label>
+
+                    {/* Add new image URL row */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                      <input
+                        type="url"
+                        disabled={isSaving}
+                        value={formData.newImageUrl}
+                        onChange={(e) => setFormData({ ...formData, newImageUrl: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImage(); } }}
+                        className="form-input"
+                        placeholder="https://example.com/image.jpg"
+                        style={{ flex: 1, fontSize: '12.5px' }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isSaving || !formData.newImageUrl.trim()}
+                        onClick={handleAddImage}
+                        className="btn-primary"
+                        style={{ padding: '8px 14px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      >
+                        <Plus size={14} />
+                        <span>Add URL</span>
+                      </button>
+                    </div>
+
+                    {/* Image thumbnails list */}
+                    {formData.imagesList.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {formData.imagesList.map((url, idx) => {
+                          const isMain = url === formData.mainImage;
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '8px 10px',
+                                borderRadius: 'var(--radius-md)',
+                                border: isMain
+                                  ? '2px solid var(--primary-blue)'
+                                  : '1px solid var(--border-subtle)',
+                                background: isMain ? '#EFF6FF' : '#F8FAFC'
+                              }}
+                            >
+                              {/* Thumbnail preview */}
+                              <div style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                flexShrink: 0,
+                                background: 'var(--bg-surface-secondary)'
+                              }}>
+                                <img
+                                  src={url}
+                                  alt={`Image ${idx + 1}`}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+
+                              {/* URL text */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  color: isMain ? 'var(--primary-blue)' : 'var(--text-muted)',
+                                  marginBottom: '2px'
+                                }}>
+                                  {isMain ? '★ Main Image' : `Image ${idx + 1}`}
+                                </div>
+                                <div style={{
+                                  fontSize: '11px',
+                                  color: 'var(--text-secondary)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {url}
+                                </div>
+                              </div>
+
+                              {/* Set as main button */}
+                              {!isMain && (
+                                <button
+                                  type="button"
+                                  disabled={isSaving}
+                                  onClick={() => setFormData({ ...formData, mainImage: url })}
+                                  title="Set as main image"
+                                  style={{
+                                    padding: '4px 8px',
+                                    fontSize: '11px',
+                                    background: 'var(--primary-blue)',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    flexShrink: 0,
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Set Main
+                                </button>
+                              )}
+                              {isMain && (
+                                <Check size={16} color="var(--primary-blue)" style={{ flexShrink: 0 }} />
+                              )}
+
+                              {/* Remove button */}
+                              <button
+                                type="button"
+                                disabled={isSaving}
+                                onClick={() => handleRemoveImage(idx)}
+                                title="Remove image"
+                                style={{
+                                  padding: '4px 6px',
+                                  borderRadius: '4px',
+                                  color: 'var(--danger)',
+                                  flexShrink: 0
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#FEF2F2'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '16px',
+                        border: '1px dashed var(--border-subtle)',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'var(--text-muted)',
+                        fontSize: '12px'
+                      }}>
+                        <ImageIcon size={20} style={{ marginBottom: '6px', opacity: 0.5 }} />
+                        <div>No images added yet. Paste a URL above to add one.</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
