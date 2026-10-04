@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { DateRangeFilterControls } from '../components/common/DateRangeFilterControls';
 
 type DateFilterOption = 'today' | '7days' | '30days' | 'thisMonth' | 'all';
 
@@ -47,40 +48,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
     activityLogs,
     settings,
     customers,
-    currentIntern
+    currentIntern,
+    dateFilter,
+    setDateFilter,
+    customStartDate,
+    setCustomStartDate,
+    customEndDate,
+    setCustomEndDate,
+    isDateWithinFilter,
+    activePeriodLabel
   } = useDatabase();
-
-  const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
 
   // Compute date filter boundary
   const filteredData = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
 
-    const isWithinFilter = (dateStr: string) => {
-      if (dateFilter === 'all') return true;
-      const d = new Date(dateStr);
-      if (dateFilter === 'today') {
-        return dateStr.slice(0, 10) === todayStr;
-      }
-      if (dateFilter === '7days') {
-        const diffDays = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
-        return diffDays <= 7;
-      }
-      if (dateFilter === '30days') {
-        const diffDays = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
-        return diffDays <= 30;
-      }
-      if (dateFilter === 'thisMonth') {
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }
-      return true;
-    };
-
-    const fSales = sales.filter(s => isWithinFilter(s.date || s.createdAt));
-    const fPurchases = purchases.filter(p => isWithinFilter(p.date || p.createdAt));
-    const fExpenses = expenses.filter(e => isWithinFilter(e.date || e.createdAt));
-    const fWastages = wastages.filter(w => isWithinFilter(w.date || w.createdAt));
+    const fSales = sales.filter(s => isDateWithinFilter(s.date || s.createdAt));
+    const fPurchases = purchases.filter(p => isDateWithinFilter(p.date || p.createdAt));
+    const fExpenses = expenses.filter(e => isDateWithinFilter(e.date || e.createdAt));
+    const fWastages = wastages.filter(w => isDateWithinFilter(w.date || w.createdAt));
 
     const todaySales = sales
       .filter(s => (s.date || s.createdAt).slice(0, 10) === todayStr)
@@ -110,7 +97,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
       filteredSales: fSales,
       filteredPurchases: fPurchases
     };
-  }, [sales, purchases, expenses, wastages, dateFilter]);
+  }, [sales, purchases, expenses, wastages, isDateWithinFilter]);
 
   // Inventory Totals (Current Snapshot)
   const inventoryStats = useMemo(() => {
@@ -329,37 +316,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
       </div>
 
       {/* Top Header with Date Filter */}
-      <div className="dashboard-metrics-header">
-        <div>
-          <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
             Performance Metrics
           </h3>
         </div>
 
-        {/* Date Filter Tabs */}
-        <div className="dashboard-date-filter-scroll">
-          <div className="dashboard-date-filter-tabs">
-            {(['all', 'today', '7days', '30days', 'thisMonth'] as DateFilterOption[]).map(opt => {
-              const labels: Record<DateFilterOption, string> = {
-                all: 'All',
-                today: 'Today',
-                '7days': '7 Days',
-                '30days': '30 Days',
-                thisMonth: 'This Month'
-              };
-              const active = dateFilter === opt;
-              return (
-                <button
-                  key={opt}
-                  onClick={() => setDateFilter(opt)}
-                  className={`dashboard-date-btn ${active ? 'active' : ''}`}
-                >
-                  {labels[opt]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Global Date Range Controls */}
+        <DateRangeFilterControls
+          preset={dateFilter}
+          onPresetChange={setDateFilter}
+          customStartDate={customStartDate}
+          onStartDateChange={setCustomStartDate}
+          customEndDate={customEndDate}
+          onEndDateChange={setCustomEndDate}
+          showPeriodBadge={true}
+          compact={true}
+        />
       </div>
 
       {/* Primary KPI Metrics Grid */}

@@ -19,36 +19,38 @@ import { useDatabase } from '../context/DatabaseContext';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { exportToCSV } from '../utils/exportUtils';
 import { Sale } from '../types';
+import { DateRangeFilterControls } from '../components/common/DateRangeFilterControls';
 
 type ReportTab = 'financial' | 'commission' | 'sales' | 'purchases' | 'stock' | 'expenses' | 'wastage';
-type DateFilter = 'all' | 'today' | '7days' | '30days' | 'thisMonth';
 
 export const ReportsView: React.FC = () => {
-  const { sales, purchases, expenses, wastages, products, stockMovements, settings } = useDatabase();
+  const {
+    sales,
+    purchases,
+    expenses,
+    wastages,
+    products,
+    stockMovements,
+    settings,
+    dateFilter,
+    setDateFilter,
+    customStartDate,
+    setCustomStartDate,
+    customEndDate,
+    setCustomEndDate,
+    isDateWithinFilter,
+    activePeriodLabel
+  } = useDatabase();
 
   const [activeReport, setActiveReport] = useState<ReportTab>('financial');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [activeReceipt, setActiveReceipt] = useState<Sale | null>(null);
 
   // Filtered dataset based on selected period
   const filteredData = useMemo(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-
-    const isWithinFilter = (dateStr: string) => {
-      if (dateFilter === 'all') return true;
-      const d = new Date(dateStr);
-      if (dateFilter === 'today') return dateStr.slice(0, 10) === todayStr;
-      if (dateFilter === '7days') return (now.getTime() - d.getTime()) / (1000 * 3600 * 24) <= 7;
-      if (dateFilter === '30days') return (now.getTime() - d.getTime()) / (1000 * 3600 * 24) <= 30;
-      if (dateFilter === 'thisMonth') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      return true;
-    };
-
-    const fSales = sales.filter(s => isWithinFilter(s.date || s.createdAt));
-    const fPurchases = purchases.filter(p => isWithinFilter(p.date || p.createdAt));
-    const fExpenses = expenses.filter(e => isWithinFilter(e.date || e.createdAt));
-    const fWastages = wastages.filter(w => isWithinFilter(w.date || w.createdAt));
+    const fSales = sales.filter(s => isDateWithinFilter(s.date || s.createdAt));
+    const fPurchases = purchases.filter(p => isDateWithinFilter(p.date || p.createdAt));
+    const fExpenses = expenses.filter(e => isDateWithinFilter(e.date || e.createdAt));
+    const fWastages = wastages.filter(w => isDateWithinFilter(w.date || w.createdAt));
 
     const totalSales = fSales.reduce((s, x) => s + x.total, 0);
     const ownSales = fSales.reduce((s, x) => s + x.ownSalesTotal, 0);
@@ -85,7 +87,7 @@ export const ReportsView: React.FC = () => {
       grossMargin,
       netBusinessResult
     };
-  }, [sales, purchases, expenses, wastages, dateFilter]);
+  }, [sales, purchases, expenses, wastages, isDateWithinFilter]);
 
   // Export handlers
   const handleExportCSV = () => {
@@ -156,50 +158,24 @@ export const ReportsView: React.FC = () => {
       {/* Header with Export & Date Filters */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
+        flexDirection: 'column',
+        gap: '16px',
         marginBottom: '20px'
       }}>
-        <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
-            Financial Reports & Audits
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Caliph Life School Thinkaroo accounting & commission statements
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Date Filter */}
-          <div style={{
-            display: 'flex',
-            background: '#FFFFFF',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '3px'
-          }}>
-            {(['all', 'today', '7days', '30days', 'thisMonth'] as DateFilter[]).map(df => {
-              const labels = { all: 'All', today: 'Today', '7days': '7D', '30days': '30D', thisMonth: 'Month' };
-              const active = dateFilter === df;
-              return (
-                <button
-                  key={df}
-                  onClick={() => setDateFilter(df)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '11.5px',
-                    fontWeight: active ? 600 : 500,
-                    background: active ? 'var(--primary-blue)' : 'transparent',
-                    color: active ? '#FFFFFF' : 'var(--text-secondary)'
-                  }}
-                >
-                  {labels[df]}
-                </button>
-              );
-            })}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Financial Reports & Audits
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Caliph Life School Thinkaroo accounting & commission statements
+            </p>
           </div>
 
           <button onClick={handleExportCSV} className="btn-secondary" style={{ fontSize: '12.5px' }}>
@@ -207,6 +183,17 @@ export const ReportsView: React.FC = () => {
             <span>Export CSV</span>
           </button>
         </div>
+
+        {/* Reusable Date Range Filter Controls */}
+        <DateRangeFilterControls
+          preset={dateFilter}
+          onPresetChange={setDateFilter}
+          customStartDate={customStartDate}
+          onStartDateChange={setCustomStartDate}
+          customEndDate={customEndDate}
+          onEndDateChange={setCustomEndDate}
+          showPeriodBadge={true}
+        />
       </div>
 
       {/* Reports Sub-Navigation */}
@@ -297,9 +284,14 @@ export const ReportsView: React.FC = () => {
 
           {/* Statement Table */}
           <div className="tk-card">
-            <div className="tk-card-header">
+            <div className="tk-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <span style={{ fontSize: '14px', fontWeight: 700 }}>Income & Expenditure Statement</span>
-              <span className="badge badge-neutral" style={{ fontSize: '11px' }}>Caliph Life School Thinkaroo</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className="badge badge-neutral" style={{ fontSize: '11px', background: '#F1F5F9' }}>
+                  📅 {activePeriodLabel}
+                </span>
+                <span className="badge badge-neutral" style={{ fontSize: '11px' }}>Caliph Life School Thinkaroo</span>
+              </div>
             </div>
             <div className="tk-card-body" style={{ padding: 0 }}>
               <table className="tk-table">

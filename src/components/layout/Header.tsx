@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Menu, 
-  Plus, 
   ChevronDown, 
   Clock,
   GraduationCap,
@@ -28,7 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getTabTitle = (tab: NavTab) => {
     switch (tab) {
-      case 'dashboard': return 'Dashboard';
+      case 'home': return 'Home';
+      case 'dashboard': return 'Management Dashboard';
       case 'products': return 'Products';
       case 'stock': return 'Stock & Inventory';
       case 'purchase': return 'Purchases';
@@ -85,16 +85,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right side: Quick Action "New Sale" and Profile dropdown */}
+      {/* Right side: Profile dropdown */}
       <div className="header-actions">
-        <button
-          onClick={onNewSaleClick}
-          className="btn-primary header-new-sale-btn"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span className="btn-text">New Sale</span>
-        </button>
-
         {/* Profile Dropdown — shows ONLY the current user + Sign Out */}
         <div style={{ position: 'relative' }}>
           <button

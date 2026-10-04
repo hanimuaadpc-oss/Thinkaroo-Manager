@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { DateFilterPreset, isDateInFilterRange, getActivePeriodLabel, toLocalDateString } from '../utils/dateFilterUtils';
 import {
   Product,
   Purchase,
@@ -157,8 +158,18 @@ interface DatabaseContextType {
   resetDatabase: (mode: 'DEMO' | 'SALES' | 'INVENTORY' | 'FULL') => void;
   importFullDatabase: (data: any) => void;
 
-  // Helpers
+  // Helpers & Global Date Filter
   logActivity: (action: string, entityType: ActivityLog['entityType'], details: string, entityId?: string) => void;
+
+  // Global Date Range Filter State
+  dateFilter: DateFilterPreset;
+  setDateFilter: (filter: DateFilterPreset) => void;
+  customStartDate: string;
+  setCustomStartDate: (date: string) => void;
+  customEndDate: string;
+  setCustomEndDate: (date: string) => void;
+  isDateWithinFilter: (dateStr: string | null | undefined) => boolean;
+  activePeriodLabel: string;
 }
 
 const STORAGE_KEYS = {
@@ -204,6 +215,19 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.MOVEMENTS, initialMovements));
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.ACTIVITY, initialActivityLogs));
   const [settings, setSettings] = useState<BusinessSettings>(() => loadState(STORAGE_KEYS.SETTINGS, initialSettings));
+
+  // Global Date Filter State (Shared across Reports and Dashboards)
+  const [dateFilter, setDateFilter] = useState<DateFilterPreset>('all');
+  const [customStartDate, setCustomStartDate] = useState<string>('2026-06-12');
+  const [customEndDate, setCustomEndDate] = useState<string>('2026-06-24');
+
+  const isDateWithinFilter = useCallback((dateStr: string | null | undefined): boolean => {
+    return isDateInFilterRange(dateStr, dateFilter, customStartDate, customEndDate);
+  }, [dateFilter, customStartDate, customEndDate]);
+
+  const activePeriodLabel = useMemo(() => {
+    return getActivePeriodLabel(dateFilter, customStartDate, customEndDate);
+  }, [dateFilter, customStartDate, customEndDate]);
 
   // Auth stage & current intern.
   // The authenticated identity is held only in React state (module memory),
@@ -1567,6 +1591,15 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       resetDatabase,
       importFullDatabase,
       logActivity,
+
+      dateFilter,
+      setDateFilter,
+      customStartDate,
+      setCustomStartDate,
+      customEndDate,
+      setCustomEndDate,
+      isDateWithinFilter,
+      activePeriodLabel,
     }}>
       {children}
     </DatabaseContext.Provider>

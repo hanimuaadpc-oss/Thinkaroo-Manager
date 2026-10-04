@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Home,
   LayoutDashboard,
   Package,
   Boxes,
@@ -20,6 +21,7 @@ import {
 import { useDatabase } from '../../context/DatabaseContext';
 
 export type NavTab = 
+  | 'home'
   | 'dashboard'
   | 'products'
   | 'stock'
@@ -54,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ).length;
 
   const navItems: { id: NavTab; label: string; icon: LucideIcon; badge?: number | string; badgeColor?: string }[] = [
+    { id: 'home', label: 'Home', icon: Home },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Products', icon: Package, badge: products.length },
     { id: 'stock', label: 'Stock', icon: Boxes, badge: lowStockCount > 0 ? lowStockCount : undefined, badgeColor: 'warning' },

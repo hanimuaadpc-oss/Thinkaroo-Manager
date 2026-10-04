@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ReceiptText, Package, Boxes, BarChart3, LucideIcon } from 'lucide-react';
+import { Home, LayoutDashboard, ReceiptText, Package, BarChart3, LucideIcon } from 'lucide-react';
 import { NavTab } from './Sidebar';
 
 interface BottomNavProps {
@@ -9,10 +9,10 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab }) => {
   const items: { id: NavTab; label: string; icon: LucideIcon }[] = [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'sales', label: 'Sales', icon: ReceiptText },
     { id: 'products', label: 'Products', icon: Package },
-    { id: 'stock', label: 'Stock', icon: Boxes },
     { id: 'reports', label: 'Reports', icon: BarChart3 }
   ];
 

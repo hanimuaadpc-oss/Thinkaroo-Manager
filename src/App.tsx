@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase } from './context/DatabaseContext';
 import { Sidebar, NavTab } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -7,6 +7,7 @@ import { LoginModal } from './components/auth/LoginModal';
 import { AccessDeniedModal } from './components/auth/AccessDeniedModal';
 
 // Views
+import { HomeView } from './views/HomeView';
 import { DashboardView } from './views/DashboardView';
 import { ProductsView } from './views/ProductsView';
 import { StockView } from './views/StockView';
@@ -19,10 +20,60 @@ import { ReportsView } from './views/ReportsView';
 import { InternsView } from './views/InternsView';
 import { SettingsView } from './views/SettingsView';
 
+const VALID_TABS: NavTab[] = [
+  'home',
+  'dashboard',
+  'products',
+  'stock',
+  'purchase',
+  'sales',
+  'customers',
+  'expenses',
+  'wastage',
+  'reports',
+  'interns',
+  'settings'
+];
+
+const getInitialTab = (): NavTab => {
+  const rawHash = window.location.hash.replace('#', '').trim().toLowerCase();
+  if (VALID_TABS.includes(rawHash as NavTab)) {
+    return rawHash as NavTab;
+  }
+  return 'home';
+};
+
 export const App: React.FC = () => {
   const { isAuthenticated, isAccessDenied } = useDatabase();
-  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [currentTab, setCurrentTabState] = useState<NavTab>(getInitialTab);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Helper to change tab & sync with URL hash so direct navigation/refresh works
+  const setCurrentTab = (tab: NavTab) => {
+    setCurrentTabState(tab);
+    if (window.location.hash !== `#${tab}`) {
+      window.location.hash = tab;
+    }
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const rawHash = window.location.hash.replace('#', '').trim().toLowerCase();
+      if (VALID_TABS.includes(rawHash as NavTab)) {
+        setCurrentTabState(rawHash as NavTab);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Sync initial hash if absent
+    const rawHash = window.location.hash.replace('#', '').trim().toLowerCase();
+    if (!VALID_TABS.includes(rawHash as NavTab)) {
+      window.location.hash = currentTab;
+    }
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Quick action from header to jump straight to POS terminal
   const handleNewSaleClick = () => {
@@ -52,6 +103,12 @@ export const App: React.FC = () => {
         />
 
         <main style={{ flex: 1 }}>
+          {currentTab === 'home' && (
+            <HomeView
+              onNavigateTab={(tab) => setCurrentTab(tab)}
+              onNewSaleClick={handleNewSaleClick}
+            />
+          )}
           {currentTab === 'dashboard' && (
             <DashboardView
               onNavigateTab={(tab) => setCurrentTab(tab)}
