@@ -167,7 +167,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
               Thinkaroo – Caliph Life School
             </h1>
             <p className="launcher-brand-subtitle">
-              Select an option to continue
+              Enterprise Resource Planning & Performance Overview
             </p>
           </div>
         </div>
@@ -179,140 +179,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab, onN
           <Plus size={16} strokeWidth={2.5} />
           <span>POS Terminal</span>
         </button>
-      </div>
-
-      {/* 2-Column Mobile App Style Launcher Cards Matrix */}
-      <div style={{ marginBottom: '24px' }}>
-        <div className="launcher-grid">
-          {[
-            {
-              id: 'dashboard',
-              title: 'Dashboard',
-              description: 'Overview & Analytics',
-              icon: LayoutDashboard,
-              bg: '#EEF2FF',
-              color: '#4F46E5'
-            },
-            {
-              id: 'products',
-              title: 'Products',
-              description: 'Catalog & Pricing',
-              icon: Package,
-              bg: '#F0F9FF',
-              color: 'var(--primary-blue)',
-              badge: `${products.length}`
-            },
-            {
-              id: 'stock',
-              title: 'Stock',
-              description: 'Inventory Balance',
-              icon: Boxes,
-              bg: '#F0FDFA',
-              color: '#0D9488',
-              badge: inventoryStats.lowStockCount > 0 ? `${inventoryStats.lowStockCount} Low` : 'Optimal'
-            },
-            {
-              id: 'purchase',
-              title: 'Purchase',
-              description: 'Intake & Suppliers',
-              icon: Truck,
-              bg: '#F3E8FF',
-              color: '#9333EA',
-              badge: `${purchases.length}`
-            },
-            {
-              id: 'sales',
-              title: 'Sales',
-              description: 'POS & Billing',
-              icon: ReceiptText,
-              bg: '#FFF7ED',
-              color: 'var(--primary-orange)',
-              badge: 'POS'
-            },
-            {
-              id: 'customers',
-              title: 'Customers',
-              description: 'Clients & History',
-              icon: Users,
-              bg: '#EFF6FF',
-              color: '#2563EB',
-              badge: `${customers.length}`
-            },
-            {
-              id: 'expenses',
-              title: 'Expenses',
-              description: 'Business Spend',
-              icon: CreditCard,
-              bg: '#FEF2F2',
-              color: '#DC2626',
-              badge: `${expenses.length}`
-            },
-            {
-              id: 'wastage',
-              title: 'Wastage',
-              description: 'Damage & Loss',
-              icon: AlertTriangle,
-              bg: '#FFFBEB',
-              color: '#D97706',
-              badge: `${wastages.length}`
-            },
-            {
-              id: 'reports',
-              title: 'Reports',
-              description: 'P&L & Analytics',
-              icon: BarChart3,
-              bg: '#F0FDF4',
-              color: '#16A34A',
-              badge: 'P&L'
-            },
-            {
-              id: 'interns',
-              title: 'Interns',
-              description: 'Access & Audit',
-              icon: GraduationCap,
-              bg: '#EEF2FF',
-              color: '#4F46E5',
-              badge: `${activityLogs.length}`
-            },
-            {
-              id: 'settings',
-              title: 'Settings',
-              description: 'Config & Rules',
-              icon: Settings,
-              bg: '#F8FAFC',
-              color: '#475569',
-              badge: 'Config'
-            }
-          ].map(mod => {
-            const Icon = mod.icon;
-            return (
-              <div
-                key={mod.id}
-                onClick={() => {
-                  if (mod.id === 'sales') onNewSaleClick();
-                  else onNavigateTab(mod.id);
-                }}
-                className="tk-card launcher-card"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div 
-                    className="launcher-icon-box"
-                    style={{ background: mod.bg }}
-                  >
-                    <Icon size={18} color={mod.color} />
-                  </div>
-                  {mod.badge && (
-                    <span className="badge badge-neutral launcher-badge">
-                      {mod.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="launcher-card-title">{mod.title}</div>
-                <div className="launcher-card-desc">{mod.description}</div>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* Top Header with Date Filter */}
