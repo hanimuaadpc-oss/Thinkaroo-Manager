@@ -11,15 +11,33 @@ import {
   ActivityLog,
   BusinessSettings
 } from '../types';
+import { toLocalDateString } from '../utils/dateFilterUtils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-id.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
 
 export const isSupabaseConfigured = 
   supabaseUrl !== 'https://your-project-id.supabase.co' && 
-  supabaseAnonKey !== 'your-supabase-anon-key';
+  supabaseKey !== 'your-supabase-anon-key' &&
+  !supabaseUrl.includes('your-project-id');
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Helper to convert calendar dates or timestamps safely into ISO strings for PostgreSQL TIMESTAMPTZ
+export function toDbIsoDate(dateVal: string | Date | null | undefined): string {
+  if (!dateVal) return new Date().toISOString();
+  if (dateVal instanceof Date) {
+    return isNaN(dateVal.getTime()) ? new Date().toISOString() : dateVal.toISOString();
+  }
+  const dateStr = dateVal.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const localNoon = new Date(y, m - 1, d, 12, 0, 0);
+    return localNoon.toISOString();
+  }
+  const parsed = new Date(dateStr);
+  return !isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+}
 
 // Helper Mappers between DB snake_case and UI camelCase
 
@@ -77,7 +95,7 @@ export function mapPurchaseFromDb(db: any): Purchase {
     type: db.type,
     supplierOrOwner: db.supplier_or_owner,
     commissionRate: Number(db.commission_rate || 10),
-    date: db.date || db.created_at,
+    date: toLocalDateString(db.date || db.created_at),
     items: Array.isArray(db.items) ? db.items : [],
     totalAmount: Number(db.total_amount || 0),
     status: db.status || 'RECEIVED',
@@ -94,7 +112,7 @@ export function mapPurchaseToDb(p: Purchase) {
     type: p.type,
     supplier_or_owner: p.supplierOrOwner,
     commission_rate: p.commissionRate || 10,
-    date: p.date,
+    date: toDbIsoDate(p.date),
     items: p.items || [],
     total_amount: p.totalAmount,
     status: p.status,
@@ -107,7 +125,7 @@ export function mapSaleFromDb(db: any): Sale {
   return {
     id: db.id,
     billNumber: db.bill_number,
-    date: db.date || db.created_at,
+    date: toLocalDateString(db.date || db.created_at),
     customerName: db.customer_name,
     customerPhone: db.customer_phone,
     isWalkIn: Boolean(db.is_walk_in),
@@ -133,7 +151,7 @@ export function mapSaleToDb(s: Sale) {
   return {
     id: s.id,
     bill_number: s.billNumber,
-    date: s.date,
+    date: toDbIsoDate(s.date),
     customer_name: s.customerName,
     customer_phone: s.customerPhone,
     is_walk_in: s.isWalkIn,
@@ -187,7 +205,7 @@ export function mapExpenseFromDb(db: any): Expense {
     id: db.id,
     category: db.category,
     amount: Number(db.amount || 0),
-    date: db.date,
+    date: toLocalDateString(db.date || db.created_at),
     note: db.note || '',
     recordedByIntern: db.recorded_by_intern || '',
     createdAt: db.created_at || new Date().toISOString()
@@ -199,7 +217,7 @@ export function mapExpenseToDb(e: Expense) {
     id: e.id,
     category: e.category,
     amount: e.amount,
-    date: e.date,
+    date: toDbIsoDate(e.date),
     note: e.note,
     recorded_by_intern: e.recordedByIntern
   };
@@ -215,7 +233,7 @@ export function mapWastageFromDb(db: any): Wastage {
     unitCost: Number(db.unit_cost || 0),
     totalLoss: Number(db.total_loss || 0),
     reason: db.reason,
-    date: db.date,
+    date: toLocalDateString(db.date || db.created_at),
     note: db.note || '',
     recordedByIntern: db.recorded_by_intern || '',
     createdAt: db.created_at || new Date().toISOString()
@@ -232,7 +250,7 @@ export function mapWastageToDb(w: Wastage) {
     unit_cost: w.unitCost,
     total_loss: w.totalLoss,
     reason: w.reason,
-    date: w.date,
+    date: toDbIsoDate(w.date),
     note: w.note,
     recorded_by_intern: w.recordedByIntern
   };

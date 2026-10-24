@@ -17,6 +17,7 @@ import {
   PurchaseItem
 } from '../types';
 import {
+  initialProducts,
   initialPurchases,
   initialSales,
   initialCustomers,
@@ -58,10 +59,9 @@ const PIN_LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutes
 let   _pinAttempts     = 0;
 let   _pinLockedUntil  = 0;
 
-// Read the PIN once from the build-time env var — never from localStorage.
-// The value lives only in JS memory; it is not exposed in any API response,
-// URL, localStorage, or sessionStorage.
-const ACCESS_PIN: string = (import.meta.env.VITE_ACCESS_PIN ?? '2026').trim();
+// Master Passkey / PIN default from build-time env var or '2026' fallback.
+const DEFAULT_ACCESS_PIN: string = (import.meta.env.VITE_ACCESS_PIN ?? '2026').trim();
+
 
 // ─── Auth stage ─────────────────────────────────────────────────────────────
 // 'loading'         — resolving initial state
@@ -80,6 +80,11 @@ interface DatabaseContextType {
   login: (email: string, pin: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   clearAccessDenied: () => void;
+
+  // Master Passkey / Universal Access PIN (Admin managed)
+  systemPasskey: string;
+  updateSystemPasskey: (newPasskey: string) => Promise<{ success: boolean; message: string }>;
+
 
   // Entities
   products: Product[];
@@ -131,6 +136,7 @@ interface DatabaseContextType {
     discount?: number;
     paymentMethod: 'CASH' | 'UPI' | 'CARD' | 'OTHER';
     notes?: string;
+    date?: string;
   }) => Promise<Sale>;
   updateSale: (id: string, updates: Partial<Sale>) => Promise<{ success: boolean; error?: string }>;
   deleteSale: (id: string) => Promise<{ success: boolean; error?: string }>;
@@ -155,7 +161,7 @@ interface DatabaseContextType {
 
   // Settings, Import & Reset
   updateSettings: (newSettings: Partial<BusinessSettings>) => Promise<void>;
-  resetDatabase: (mode: 'DEMO' | 'SALES' | 'INVENTORY' | 'FULL') => void;
+  resetDatabase: (mode: 'DEMO' | 'SALES' | 'INVENTORY' | 'FULL') => Promise<{ success: boolean; error?: string }>;
   importFullDatabase: (data: any) => void;
 
   // Helpers & Global Date Filter
@@ -182,6 +188,7 @@ const STORAGE_KEYS = {
   MOVEMENTS: 'thinkaroo_movements_v2',
   ACTIVITY: 'thinkaroo_activity_v2',
   SETTINGS: 'thinkaroo_settings_v2',
+  SYSTEM_PASSKEY: 'thinkaroo_system_passkey_v2',
   // NOTE: We no longer persist the current intern in localStorage because
   // session continuity is handled by Supabase auth tokens.
 };
@@ -189,7 +196,7 @@ const STORAGE_KEYS = {
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 
 export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load helper for fallback when Supabase is not configured
+  // Helpers for fallback when Supabase is not configured or offline
   const loadState = <T,>(key: string, defaultVal: T): T => {
     try {
       const saved = localStorage.getItem(key);
@@ -198,6 +205,14 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error(`Failed to load ${key}`, e);
     }
     return defaultVal;
+  };
+
+  const saveState = (key: string, val: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {
+      console.error(`Failed to save ${key}`, e);
+    }
   };
 
   // Products State
@@ -215,11 +230,20 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.MOVEMENTS, initialMovements));
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.ACTIVITY, initialActivityLogs));
   const [settings, setSettings] = useState<BusinessSettings>(() => loadState(STORAGE_KEYS.SETTINGS, initialSettings));
+  const [systemPasskey, setSystemPasskey] = useState<string>(() => loadState(STORAGE_KEYS.SYSTEM_PASSKEY, DEFAULT_ACCESS_PIN));
+
 
   // Global Date Filter State (Shared across Reports and Dashboards)
+  const defaultCustomDates = useMemo(() => {
+    const now = new Date();
+    const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const end = toLocalDateString(now);
+    return { start, end };
+  }, []);
+
   const [dateFilter, setDateFilter] = useState<DateFilterPreset>('all');
-  const [customStartDate, setCustomStartDate] = useState<string>('2026-06-12');
-  const [customEndDate, setCustomEndDate] = useState<string>('2026-06-24');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => defaultCustomDates.start);
+  const [customEndDate, setCustomEndDate] = useState<string>(() => defaultCustomDates.end);
 
   const isDateWithinFilter = useCallback((dateStr: string | null | undefined): boolean => {
     return isDateInFilterRange(dateStr, dateFilter, customStartDate, customEndDate);
@@ -353,11 +377,19 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // 10. Business Settings
-      const { data: dbSettings, error: setErr } = await supabase.from('business_settings').select('*').single();
+      const { data: dbSettings, error: setErr } = await supabase.from('business_settings').select('*').eq('id', 'default').maybeSingle();
       if (setErr) {
         console.error('Error fetching settings:', setErr.message);
       } else if (dbSettings) {
         setSettings(mapSettingsFromDb(dbSettings));
+      }
+
+      // 11. Master System Passkey
+      const { data: pkData } = await supabase.from('business_settings').select('business_name').eq('id', 'system_passkey').maybeSingle();
+      if (pkData?.business_name) {
+        const cleanPin = pkData.business_name.trim();
+        setSystemPasskey(cleanPin);
+        saveState(STORAGE_KEYS.SYSTEM_PASSKEY, cleanPin);
       }
     } catch (err) {
       console.error('Supabase sync exception:', err);
@@ -365,6 +397,31 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsLoadingProducts(false);
     }
   };
+
+  // On mount, load cloud passkey if Supabase is connected
+  useEffect(() => {
+    if (isSupabaseConfigured) {
+      const loadInitialPasskey = async () => {
+        try {
+          const { data } = await supabase
+            .from('business_settings')
+            .select('business_name')
+            .eq('id', 'system_passkey')
+            .maybeSingle();
+
+          if (data?.business_name) {
+            const cleanPin = data.business_name.trim();
+            setSystemPasskey(cleanPin);
+            saveState(STORAGE_KEYS.SYSTEM_PASSKEY, cleanPin);
+          }
+        } catch (err) {
+          console.warn('Could not load passkey from cloud on init:', err);
+        }
+      };
+
+      loadInitialPasskey();
+    }
+  }, []);
 
   // ── Session Initialization ────────────────────────────────────────────────
   // On mount, there is no persisted session — the user must always log in.
@@ -424,8 +481,26 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     }
 
-    // ── PIN check first (fast, no async) ─────────────────────────────────
-    if (pin.trim() !== ACCESS_PIN) {
+    // ── PIN check first (fetches latest cloud passkey if online) ─────────
+    let currentValidPin = systemPasskey;
+    if (isSupabaseConfigured) {
+      try {
+        const { data: pkData } = await supabase
+          .from('business_settings')
+          .select('business_name')
+          .eq('id', 'system_passkey')
+          .maybeSingle();
+        if (pkData?.business_name) {
+          currentValidPin = pkData.business_name.trim();
+          setSystemPasskey(currentValidPin);
+          saveState(STORAGE_KEYS.SYSTEM_PASSKEY, currentValidPin);
+        }
+      } catch (err) {
+        console.warn('Fallback to local system passkey for authentication:', err);
+      }
+    }
+
+    if (pin.trim() !== currentValidPin.trim()) {
       _pinAttempts += 1;
       if (_pinAttempts >= PIN_MAX_ATTEMPTS) {
         _pinLockedUntil = now + PIN_LOCKOUT_MS;
@@ -440,7 +515,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       logActivity('INCORRECT_PIN', 'AUTH', `Incorrect PIN for ${cleanEmail}. ${remaining} attempt(s) remaining.`);
       return {
         success: false,
-        message: `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
+        message: `Incorrect PIN / Passkey. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
       };
     }
 
@@ -1482,6 +1557,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateSettings = async (newSettings: Partial<BusinessSettings>) => {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
+    saveState(STORAGE_KEYS.SETTINGS, updated);
 
     if (isSupabaseConfigured) {
       const dbPayload = mapSettingsToDb(updated);
@@ -1490,6 +1566,53 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     logActivity('SETTINGS_UPDATED', 'SETTINGS', 'Updated business configuration settings');
+  };
+
+  // Master Passkey Update (Only Admin Accounts)
+  const updateSystemPasskey = async (newPasskey: string): Promise<{ success: boolean; message: string }> => {
+    if (currentIntern?.role !== 'ADMIN') {
+      return {
+        success: false,
+        message: 'Permission denied: Only Administrator accounts (Faculty Mentors) can change the system passkey.'
+      };
+    }
+    const cleanPasskey = newPasskey.trim();
+    if (!cleanPasskey) {
+      return { success: false, message: 'Passkey cannot be empty.' };
+    }
+    if (!/^\d{4,8}$/.test(cleanPasskey)) {
+      return { success: false, message: 'Passkey must be between 4 and 8 digits (numeric PIN).' };
+    }
+
+    setSystemPasskey(cleanPasskey);
+    saveState(STORAGE_KEYS.SYSTEM_PASSKEY, cleanPasskey);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('business_settings').upsert({
+          id: 'system_passkey',
+          business_name: cleanPasskey,
+          updated_at: new Date().toISOString()
+        });
+        if (error) {
+          console.error('Failed to sync new passkey to Supabase:', error.message);
+          return { success: false, message: `Failed to update cloud database: ${error.message}` };
+        }
+      } catch (err: any) {
+        console.error('Exception syncing passkey to Supabase:', err);
+        return { success: false, message: `Cloud database update error: ${err.message || 'Unknown error'}` };
+      }
+    }
+
+    logActivity(
+      'SYSTEM_PASSKEY_CHANGED',
+      'AUTH',
+      `Master passkey updated by admin ${currentIntern.name} (${currentIntern.email}). All users will now use this new passkey.`
+    );
+    return {
+      success: true,
+      message: 'Master passkey updated successfully! All users will now use this new passkey to sign in.'
+    };
   };
 
   // Full Import
@@ -1508,28 +1631,33 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Data Reset Options
-  const resetDatabase = (mode: 'DEMO' | 'SALES' | 'INVENTORY' | 'FULL') => {
-    if (mode === 'DEMO') {
-      refetchAll();
-      logActivity('DATA_RESET_DEMO', 'SETTINGS', 'Reset database to authentic demo data');
-    } else if (mode === 'SALES') {
-      setSales([]);
-      setCustomers([]);
-      logActivity('DATA_RESET_SALES', 'SETTINGS', 'Cleared all sales and customer history');
-    } else if (mode === 'INVENTORY') {
-      setPurchases([]);
-      setWastages([]);
-      setStockMovements([]);
-      logActivity('DATA_RESET_INVENTORY', 'SETTINGS', 'Zeroed inventory and cleared purchases');
-    } else if (mode === 'FULL') {
-      setPurchases([]);
-      setSales([]);
-      setCustomers([]);
-      setExpenses([]);
-      setWastages([]);
-      setStockMovements([]);
-      setActivityLogs([]);
-      logActivity('DATA_RESET_FULL', 'SETTINGS', 'Performed full data reset');
+  const resetDatabase = async (mode: 'DEMO' | 'SALES' | 'INVENTORY' | 'FULL'): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (mode === 'DEMO') {
+        await refetchAll();
+        logActivity('DATA_RESET_DEMO', 'SETTINGS', 'Reset database to authentic demo data');
+      } else if (mode === 'SALES') {
+        setSales([]);
+        setCustomers([]);
+        logActivity('DATA_RESET_SALES', 'SETTINGS', 'Cleared all sales and customer history');
+      } else if (mode === 'INVENTORY') {
+        setPurchases([]);
+        setWastages([]);
+        setStockMovements([]);
+        logActivity('DATA_RESET_INVENTORY', 'SETTINGS', 'Zeroed inventory and cleared purchases');
+      } else if (mode === 'FULL') {
+        setPurchases([]);
+        setSales([]);
+        setCustomers([]);
+        setExpenses([]);
+        setWastages([]);
+        setStockMovements([]);
+        setActivityLogs([]);
+        logActivity('DATA_RESET_FULL', 'SETTINGS', 'Performed full data reset');
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Reset failed' };
     }
   };
 
@@ -1588,6 +1716,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       deleteIntern,
 
       updateSettings,
+      systemPasskey,
+      updateSystemPasskey,
       resetDatabase,
       importFullDatabase,
       logActivity,

@@ -12,18 +12,77 @@ import {
   Boxes,
   Plus,
   X,
-  Database
+  Database,
+  KeyRound,
+  ShieldCheck,
+  ShieldAlert,
+  Eye,
+  EyeOff,
+  Lock
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import { BusinessSettings } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export const SettingsView: React.FC = () => {
-  const { settings, updateSettings, resetDatabase } = useDatabase();
+  const { 
+    settings, 
+    updateSettings, 
+    resetDatabase, 
+    currentIntern, 
+    systemPasskey, 
+    updateSystemPasskey 
+  } = useDatabase();
+
+  const isAdmin = currentIntern?.role === 'ADMIN';
 
   const [formSettings, setFormSettings] = useState<BusinessSettings>(settings);
   const [newCatInput, setNewCatInput] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Master Passkey Management states (Admin only)
+  const [showCurrentPasskey, setShowCurrentPasskey] = useState(false);
+  const [newPasskey, setNewPasskey] = useState('');
+  const [confirmPasskey, setConfirmPasskey] = useState('');
+  const [showNewPasskey, setShowNewPasskey] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeySuccessMsg, setPasskeySuccessMsg] = useState('');
+  const [passkeyErrorMsg, setPasskeyErrorMsg] = useState('');
+
+  const handleUpdatePasskey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasskeyErrorMsg('');
+    setPasskeySuccessMsg('');
+
+    const cleanPasskey = newPasskey.trim();
+    if (!cleanPasskey) {
+      setPasskeyErrorMsg('Please enter a new passkey.');
+      return;
+    }
+    if (!/^\d{4,8}$/.test(cleanPasskey)) {
+      setPasskeyErrorMsg('Passkey must be between 4 and 8 numeric digits (e.g., 2026).');
+      return;
+    }
+    if (cleanPasskey !== confirmPasskey.trim()) {
+      setPasskeyErrorMsg('The two passkeys do not match. Please re-enter.');
+      return;
+    }
+
+    setPasskeyLoading(true);
+    try {
+      const res = await updateSystemPasskey(cleanPasskey);
+      if (res.success) {
+        setPasskeySuccessMsg(res.message);
+        setNewPasskey('');
+        setConfirmPasskey('');
+        setTimeout(() => setPasskeySuccessMsg(''), 5000);
+      } else {
+        setPasskeyErrorMsg(res.message);
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
 
   // Data Reset Modal states
   const [resetModalMode, setResetModalMode] = useState<'DEMO' | 'SALES' | 'INVENTORY' | 'FULL' | null>(null);
@@ -95,103 +154,326 @@ export const SettingsView: React.FC = () => {
         )}
       </div>
 
-      <form onSubmit={handleSaveSettings}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Brand Identity & Logo Preview */}
-          <div className="tk-card">
-            <div className="tk-card-header">
-              <span style={{ fontSize: '14px', fontWeight: 700 }}>Brand Identity & Palette</span>
-              <span className="badge badge-own" style={{ fontSize: '11px' }}>Thinkaroo Official</span>
-            </div>
-            <div className="tk-card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '16px',
-                  background: '#FFF7ED',
-                  border: '2px solid #FED7AA',
-                  padding: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(255, 107, 0, 0.15)'
-                }}>
-                  <img src="/thinkaroo-logo.png" alt="Thinkaroo Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Brand Identity & Logo Preview */}
+        <div className="tk-card">
+          <div className="tk-card-header">
+            <span style={{ fontSize: '14px', fontWeight: 700 }}>Brand Identity & Palette</span>
+            <span className="badge badge-own" style={{ fontSize: '11px' }}>Thinkaroo Official</span>
+          </div>
+          <div className="tk-card-body">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '16px',
+                background: '#FFF7ED',
+                border: '2px solid #FED7AA',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(255, 107, 0, 0.15)'
+              }}>
+                <img src="/thinkaroo-logo.png" alt="Thinkaroo Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
 
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary-orange)', margin: 0 }}>
-                    THINK<span style={{ color: 'var(--primary-blue)' }}>AROO</span>
-                  </h3>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    Caliph Life School Student Enterprise
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary-orange)', margin: 0 }}>
+                  THINK<span style={{ color: 'var(--primary-blue)' }}>AROO</span>
+                </h3>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Caliph Life School Student Enterprise
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', background: '#FFF7ED', padding: '3px 8px', borderRadius: '4px', border: '1px solid #FED7AA' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary-orange)' }} />
+                    <span>Primary Orange: #FF6B00</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', background: '#FFF7ED', padding: '3px 8px', borderRadius: '4px', border: '1px solid #FED7AA' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary-orange)' }} />
-                      <span>Primary Orange: #FF6B00</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', background: '#F0F9FF', padding: '3px 8px', borderRadius: '4px', border: '1px solid #BAE6FD' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary-blue)' }} />
-                      <span>Primary Blue: #0284C7</span>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', background: '#F0F9FF', padding: '3px 8px', borderRadius: '4px', border: '1px solid #BAE6FD' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary-blue)' }} />
+                    <span>Primary Blue: #0284C7</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Supabase Database Integration Card */}
-          <div className="tk-card">
-            <div className="tk-card-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Database size={18} color="var(--primary-blue)" />
-                <span style={{ fontSize: '14px', fontWeight: 700 }}>Supabase Cloud Database Integration</span>
-              </div>
-              <span className={`badge ${isSupabaseConfigured ? 'badge-success' : 'badge-warning'}`}>
-                {isSupabaseConfigured ? 'CONNECTED' : 'CONFIG READY (.env)'}
+        {/* System Access Passkey (Master Password for All Users) Card */}
+        <div 
+          className="tk-card" 
+          style={{ 
+            border: isAdmin ? '1.5px solid #FED7AA' : '1px solid var(--border-subtle)', 
+            background: isAdmin ? '#FFFDFB' : '#FFFFFF',
+            boxShadow: isAdmin ? '0 2px 10px rgba(255, 107, 0, 0.06)' : undefined 
+          }}
+        >
+          <div 
+            className="tk-card-header" 
+            style={{ 
+              background: isAdmin ? 'linear-gradient(90deg, #FFF7ED 0%, #FFFFFF 100%)' : '#F8FAFC',
+              borderBottom: isAdmin ? '1px solid #FED7AA' : '1px solid var(--border-subtle)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <KeyRound size={18} color="var(--primary-orange)" />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
+                System Access Passkey (Master Password for All Users)
               </span>
             </div>
-            <div className="tk-card-body">
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                Thinkaroo ERP is integrated with Supabase Data API for real-time cloud data persistence across all 10 tables:
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-                {['products', 'purchases', 'sales', 'customers', 'expenses', 'wastages', 'interns', 'stock_movements', 'activity_logs', 'business_settings'].map(table => (
-                  <span key={table} style={{
-                    fontSize: '11px',
-                    fontFamily: 'monospace',
-                    background: '#F1F5F9',
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                    color: 'var(--text-main)',
-                    border: '1px solid var(--border-subtle)'
-                  }}>
-                    public.{table}
-                  </span>
-                ))}
-              </div>
-
-              <div style={{
-                background: '#F8FAFC',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                padding: '12px 14px',
-                fontSize: '12px',
-                color: 'var(--text-muted)'
-              }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
-                  Database SQL Schema Script:
-                </div>
-                The complete SQL migration script with table schemas, constraints, JSONB columns, timestamps, and Row Level Security (RLS) policies is located at <code style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>supabase/schema.sql</code>. Run this script in your Supabase SQL Editor to initialize all tables.
-              </div>
-            </div>
+            {isAdmin ? (
+              <span className="badge badge-own" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ShieldCheck size={12} />
+                Admin Authority
+              </span>
+            ) : (
+              <span className="badge" style={{ background: '#F1F5F9', color: 'var(--text-muted)' }}>
+                Admin Only
+              </span>
+            )}
           </div>
 
-          {/* Business & School Profile */}
-          <div className="tk-card">
+          <div className="tk-card-body">
+            {isAdmin ? (
+              <div>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+                  This passkey (PIN) is used universally by <strong>all users</strong> (interns, coordinators, and faculty mentors) alongside their approved email address to log into Thinkaroo ERP. Changing it here immediately updates the required login password for every user in the school enterprise.
+                </p>
+
+                {/* Currently Active Passkey Display */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  background: '#FFFFFF',
+                  border: '1px solid #FED7AA',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 16px',
+                  marginBottom: '18px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary-orange)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Currently Active Master Passkey
+                    </div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: showCurrentPasskey ? '0.15em' : '0.25em', color: 'var(--text-main)', marginTop: '2px', fontFamily: 'monospace' }}>
+                      {showCurrentPasskey ? systemPasskey : '••••••••'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPasskey(!showCurrentPasskey)}
+                    className="btn-secondary"
+                    style={{ fontSize: '12px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {showCurrentPasskey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    <span>{showCurrentPasskey ? 'Hide Passkey' : 'Reveal Passkey'}</span>
+                  </button>
+                </div>
+
+                {/* Change Passkey Form */}
+                <form onSubmit={handleUpdatePasskey}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div className="form-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label className="form-label" style={{ margin: 0 }}>
+                          New Passkey (4–8 Digits)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPasskey(!showNewPasskey)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--primary-blue)',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          {showNewPasskey ? <EyeOff size={12} /> : <Eye size={12} />}
+                          <span>{showNewPasskey ? 'Hide digits' : 'Show digits'}</span>
+                        </button>
+                      </div>
+                      <input
+                        type={showNewPasskey ? 'text' : 'password'}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={8}
+                        value={newPasskey}
+                        onChange={e => {
+                          setNewPasskey(e.target.value.replace(/\D/g, ''));
+                          setPasskeyErrorMsg('');
+                          setPasskeySuccessMsg('');
+                        }}
+                        placeholder="Enter 4-8 digit numeric PIN"
+                        className="form-input"
+                        style={{ letterSpacing: '0.15em', fontWeight: 700, fontSize: '15px' }}
+                      />
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                        Only numbers (0–9) are accepted. E.g. 2026, 1234, 4589.
+                      </span>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Confirm New Passkey</label>
+                      <input
+                        type={showNewPasskey ? 'text' : 'password'}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={8}
+                        value={confirmPasskey}
+                        onChange={e => {
+                          setConfirmPasskey(e.target.value.replace(/\D/g, ''));
+                          setPasskeyErrorMsg('');
+                          setPasskeySuccessMsg('');
+                        }}
+                        placeholder="Re-enter new PIN"
+                        className="form-input"
+                        style={{ letterSpacing: '0.15em', fontWeight: 700, fontSize: '15px' }}
+                      />
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                        Must match the new passkey entered on the left.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Feedback messages */}
+                  {passkeyErrorMsg && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: 'var(--danger)',
+                      fontSize: '12.5px',
+                      background: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '9px 14px',
+                      marginTop: '12px'
+                    }}>
+                      <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                      <span>{passkeyErrorMsg}</span>
+                    </div>
+                  )}
+
+                  {passkeySuccessMsg && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: 'var(--success)',
+                      fontSize: '12.5px',
+                      background: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '9px 14px',
+                      marginTop: '12px'
+                    }}>
+                      <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                      <span>{passkeySuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                    <button
+                      type="submit"
+                      disabled={passkeyLoading || !newPasskey}
+                      className="btn-primary"
+                      style={{
+                        background: 'var(--primary-orange)',
+                        borderColor: 'var(--primary-orange)',
+                        padding: '9px 20px',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        opacity: (!newPasskey || passkeyLoading) ? 0.6 : 1,
+                        cursor: (!newPasskey || passkeyLoading) ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <KeyRound size={15} />
+                      <span>{passkeyLoading ? 'Updating Passkey...' : 'Update Passkey for All Users'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: '#F8FAFC', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <ShieldAlert size={24} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+                    Administrator Access Required
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    The universal login passkey can only be updated by Administrator accounts (Faculty Mentors). You are signed in as <strong>{currentIntern?.name || 'User'}</strong> ({currentIntern?.role || 'Intern'}).
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Supabase Database Integration Card */}
+        <div className="tk-card">
+          <div className="tk-card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Database size={18} color="var(--primary-blue)" />
+              <span style={{ fontSize: '14px', fontWeight: 700 }}>Supabase Cloud Database Integration</span>
+            </div>
+            <span className={`badge ${isSupabaseConfigured ? 'badge-success' : 'badge-warning'}`}>
+              {isSupabaseConfigured ? 'CONNECTED' : 'CONFIG READY (.env)'}
+            </span>
+          </div>
+          <div className="tk-card-body">
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+              Thinkaroo ERP is integrated with Supabase Data API for real-time cloud data persistence across all 10 tables:
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+              {['products', 'purchases', 'sales', 'customers', 'expenses', 'wastages', 'interns', 'stock_movements', 'activity_logs', 'business_settings'].map(table => (
+                <span key={table} style={{
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                  background: '#F1F5F9',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  color: 'var(--text-main)',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  public.{table}
+                </span>
+              ))}
+            </div>
+
+            <div style={{
+              background: '#F8FAFC',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 14px',
+              fontSize: '12px',
+              color: 'var(--text-muted)'
+            }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+                Database SQL Schema Script:
+              </div>
+              The complete SQL migration script with table schemas, constraints, JSONB columns, timestamps, and Row Level Security (RLS) policies is located at <code style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>supabase/schema.sql</code>. Run this script in your Supabase SQL Editor to initialize all tables.
+            </div>
+          </div>
+        </div>
+
+        {/* Business Settings Form */}
+        <form onSubmit={handleSaveSettings}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Business & School Profile */}
+            <div className="tk-card">
             <div className="tk-card-header">
               <span style={{ fontSize: '14px', fontWeight: 700 }}>School & Enterprise Information</span>
             </div>
@@ -383,6 +665,7 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
       </form>
+    </div>
 
       {/* Extreme Safety Data Management & Reset Section */}
       <div className="tk-card" style={{ marginTop: '30px', border: '1px solid #FECACA' }}>

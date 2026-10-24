@@ -13,23 +13,38 @@ export type DateFilterPreset =
 /** Formats a Date object or date string to YYYY-MM-DD in local time */
 export const toLocalDateString = (input: Date | string | null | undefined): string => {
   if (!input) return '';
+  if (input instanceof Date) {
+    if (isNaN(input.getTime())) return '';
+    const yyyy = input.getFullYear();
+    const mm = String(input.getMonth() + 1).padStart(2, '0');
+    const dd = String(input.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
   if (typeof input === 'string') {
-    if (/^\d{4}-\d{2}-\d{2}/.test(input)) {
-      return input.slice(0, 10);
+    const trimmed = input.trim();
+    // If it's strictly a calendar date YYYY-MM-DD without time components
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    // For ISO timestamps or date-time strings, parse and convert to local calendar date
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      return trimmed.slice(0, 10);
     }
   }
-  const d = new Date(input);
-  if (isNaN(d.getTime())) return '';
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return '';
 };
 
 /** Formats a YYYY-MM-DD string into a clean display label, e.g. "12 Jun 2026" */
 export const formatDateDisplay = (dateStr: string): string => {
   if (!dateStr) return '';
-  const clean = dateStr.slice(0, 10);
+  const clean = toLocalDateString(dateStr);
   const parts = clean.split('-');
   if (parts.length !== 3) return dateStr;
   const year = parseInt(parts[0], 10);
@@ -109,9 +124,16 @@ export const isDateInFilterRange = (
   }
 
   if (preset === 'custom') {
-    if (!customStart || !customEnd) return true;
-    if (customEnd < customStart) return false;
-    return recDate >= customStart && recDate <= customEnd;
+    const startStr = toLocalDateString(customStart);
+    const endStr = toLocalDateString(customEnd);
+    if (!startStr && !endStr) return true;
+    if (startStr && endStr) {
+      if (endStr < startStr) return false;
+      return recDate >= startStr && recDate <= endStr;
+    }
+    if (startStr) return recDate >= startStr;
+    if (endStr) return recDate <= endStr;
+    return true;
   }
 
   return true;

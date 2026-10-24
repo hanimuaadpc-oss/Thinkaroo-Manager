@@ -1,6 +1,13 @@
--- THINKAROO ERP — Supabase Database Schema & RLS Policies Script
--- Run this script in your Supabase SQL Editor to create all required tables and permissions.
+-- ============================================================================
+-- THINKAROO ERP — Production Supabase Database Schema & RLS Security Script
+-- Caliph Life School Enterprise ERP
+--
+-- How to apply:
+-- 1. Open your Supabase Dashboard -> SQL Editor
+-- 2. Click "New Query", paste this entire script, and click "RUN"
+-- ============================================================================
 
+-- 0. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. PRODUCTS TABLE
@@ -9,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   sku TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   category TEXT NOT NULL,
-  description TEXT,
+  description TEXT DEFAULT '',
   unit TEXT DEFAULT 'pcs',
   purchase_rate NUMERIC(12,2) DEFAULT 0,
   selling_rate NUMERIC(12,2) DEFAULT 0,
@@ -19,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   commission_stock INTEGER DEFAULT 0,
   min_stock_alert INTEGER DEFAULT 5,
   images JSONB DEFAULT '[]'::jsonb,
-  main_image TEXT,
+  main_image TEXT DEFAULT '',
   status TEXT DEFAULT 'ACTIVE',
   change_history JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -37,8 +44,8 @@ CREATE TABLE IF NOT EXISTS public.purchases (
   items JSONB NOT NULL DEFAULT '[]'::jsonb,
   total_amount NUMERIC(12,2) DEFAULT 0,
   status TEXT DEFAULT 'RECEIVED',
-  notes TEXT,
-  received_by_intern TEXT,
+  notes TEXT DEFAULT '',
+  received_by_intern TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -48,7 +55,7 @@ CREATE TABLE IF NOT EXISTS public.sales (
   bill_number TEXT NOT NULL UNIQUE,
   date TIMESTAMPTZ DEFAULT NOW(),
   customer_name TEXT NOT NULL,
-  customer_phone TEXT,
+  customer_phone TEXT DEFAULT '',
   is_walk_in BOOLEAN DEFAULT TRUE,
   items JSONB NOT NULL DEFAULT '[]'::jsonb,
   subtotal NUMERIC(12,2) DEFAULT 0,
@@ -61,9 +68,9 @@ CREATE TABLE IF NOT EXISTS public.sales (
   commission_earned_total NUMERIC(12,2) DEFAULT 0,
   owner_amount_total NUMERIC(12,2) DEFAULT 0,
   net_thinkaroo_profit NUMERIC(12,2) DEFAULT 0,
-  intern_email TEXT,
-  intern_name TEXT,
-  notes TEXT,
+  intern_email TEXT DEFAULT '',
+  intern_name TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -71,8 +78,8 @@ CREATE TABLE IF NOT EXISTS public.sales (
 CREATE TABLE IF NOT EXISTS public.customers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  phone TEXT,
-  email TEXT,
+  phone TEXT DEFAULT '',
+  email TEXT DEFAULT '',
   is_walk_in BOOLEAN DEFAULT FALSE,
   total_spent NUMERIC(12,2) DEFAULT 0,
   orders_count INTEGER DEFAULT 0,
@@ -86,8 +93,8 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   category TEXT NOT NULL,
   amount NUMERIC(12,2) DEFAULT 0,
   date TIMESTAMPTZ DEFAULT NOW(),
-  note TEXT,
-  recorded_by_intern TEXT,
+  note TEXT DEFAULT '',
+  recorded_by_intern TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -102,14 +109,15 @@ CREATE TABLE IF NOT EXISTS public.wastages (
   total_loss NUMERIC(12,2) DEFAULT 0,
   reason TEXT NOT NULL,
   date TIMESTAMPTZ DEFAULT NOW(),
-  note TEXT,
-  recorded_by_intern TEXT,
+  note TEXT DEFAULT '',
+  recorded_by_intern TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 7. INTERNS TABLE
 CREATE TABLE IF NOT EXISTS public.interns (
   id TEXT PRIMARY KEY,
+  auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role TEXT DEFAULT 'INTERN',
@@ -119,8 +127,9 @@ CREATE TABLE IF NOT EXISTS public.interns (
   commission_balance NUMERIC(12,2) DEFAULT 0
 );
 
--- Add commission_balance column if it doesn't already exist (for existing installs)
+-- Ensure column exists if upgrading
 ALTER TABLE public.interns ADD COLUMN IF NOT EXISTS commission_balance NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE public.interns ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 
 -- 8. STOCK MOVEMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.stock_movements (
@@ -132,9 +141,9 @@ CREATE TABLE IF NOT EXISTS public.stock_movements (
   quantity_delta NUMERIC(10,2) NOT NULL,
   quantity_after NUMERIC(10,2) NOT NULL,
   reference_id TEXT,
-  reason TEXT,
-  intern_email TEXT,
-  intern_name TEXT,
+  reason TEXT DEFAULT '',
+  intern_email TEXT DEFAULT '',
+  intern_name TEXT DEFAULT '',
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -147,7 +156,7 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
   action TEXT NOT NULL,
   entity_type TEXT NOT NULL,
   entity_id TEXT,
-  details TEXT
+  details TEXT DEFAULT ''
 );
 
 -- 10. BUSINESS SETTINGS TABLE
@@ -170,7 +179,24 @@ CREATE TABLE IF NOT EXISTS public.business_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Seed initial business settings record
+INSERT INTO public.business_settings (id)
+VALUES ('default')
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed default initial interns (so logins and team lists work immediately)
+INSERT INTO public.interns (id, email, name, role, status, commission_balance)
+VALUES
+  ('intern-1', 'admin@caliphschool.com', 'Store Manager', 'ADMIN', 'ENABLED', 0),
+  ('intern-2', 'intern1@caliphschool.com', 'Student Intern 1', 'INTERN', 'ENABLED', 0)
+ON CONFLICT (email) DO NOTHING;
+
+
+-- ============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
+-- Strict Security: Zero unrestricted public access.
+-- ============================================================================
+
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
@@ -182,33 +208,133 @@ ALTER TABLE public.stock_movements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_settings ENABLE ROW LEVEL SECURITY;
 
--- Allow public & authenticated users full Data API access for Thinkaroo ERP Operations
+-- Clean existing policies to prevent conflicts
+DROP POLICY IF EXISTS "Auth users full access products" ON public.products;
+DROP POLICY IF EXISTS "Auth users full access purchases" ON public.purchases;
+DROP POLICY IF EXISTS "Auth users full access sales" ON public.sales;
+DROP POLICY IF EXISTS "Auth users full access customers" ON public.customers;
+DROP POLICY IF EXISTS "Auth users full access expenses" ON public.expenses;
+DROP POLICY IF EXISTS "Auth users full access wastages" ON public.wastages;
+DROP POLICY IF EXISTS "Auth users full access interns" ON public.interns;
+DROP POLICY IF EXISTS "Auth users full access stock_movements" ON public.stock_movements;
+DROP POLICY IF EXISTS "Auth users full access activity_logs" ON public.activity_logs;
+DROP POLICY IF EXISTS "Auth users full access business_settings" ON public.business_settings;
+
 DROP POLICY IF EXISTS "Allow public full access to products" ON public.products;
-CREATE POLICY "Allow public full access to products" ON public.products FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to purchases" ON public.purchases;
-CREATE POLICY "Allow public full access to purchases" ON public.purchases FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to sales" ON public.sales;
-CREATE POLICY "Allow public full access to sales" ON public.sales FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to customers" ON public.customers;
-CREATE POLICY "Allow public full access to customers" ON public.customers FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to expenses" ON public.expenses;
-CREATE POLICY "Allow public full access to expenses" ON public.expenses FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to wastages" ON public.wastages;
-CREATE POLICY "Allow public full access to wastages" ON public.wastages FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to interns" ON public.interns;
-CREATE POLICY "Allow public full access to interns" ON public.interns FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to stock_movements" ON public.stock_movements;
-CREATE POLICY "Allow public full access to stock_movements" ON public.stock_movements FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to activity_logs" ON public.activity_logs;
-CREATE POLICY "Allow public full access to activity_logs" ON public.activity_logs FOR ALL USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Allow public full access to business_settings" ON public.business_settings;
-CREATE POLICY "Allow public full access to business_settings" ON public.business_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- Helper function: verify if caller is an Admin / Owner
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.interns 
+    WHERE (auth_user_id = auth.uid() OR LOWER(email) = LOWER(auth.jwt()->>'email'))
+      AND role IN ('ADMIN', 'OWNER')
+      AND status = 'ENABLED'
+  ) OR (auth.jwt()->'user_metadata'->>'role' IN ('ADMIN', 'OWNER'));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 1. PRODUCTS: Authenticated team members can view and manage products
+CREATE POLICY "Auth users full access products"
+ON public.products FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 2. PURCHASES: Authenticated team members can view and manage purchases
+CREATE POLICY "Auth users full access purchases"
+ON public.purchases FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 3. SALES: Authenticated team members can view and manage sales
+CREATE POLICY "Auth users full access sales"
+ON public.sales FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 4. CUSTOMERS: Authenticated team members can view and manage customers
+CREATE POLICY "Auth users full access customers"
+ON public.customers FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 5. EXPENSES: Authenticated team members can view and record expenses
+CREATE POLICY "Auth users full access expenses"
+ON public.expenses FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 6. WASTAGES: Authenticated team members can view and record wastages
+CREATE POLICY "Auth users full access wastages"
+ON public.wastages FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 7. STOCK MOVEMENTS: Authenticated team members can view and log movements
+CREATE POLICY "Auth users full access stock_movements"
+ON public.stock_movements FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 8. ACTIVITY LOGS: Authenticated team members can view and write audit logs
+CREATE POLICY "Auth users full access activity_logs"
+ON public.activity_logs FOR ALL TO authenticated
+USING (true) WITH CHECK (true);
+
+-- 9. INTERNS: Authenticated users can view team; only Admins/Owner can modify
+CREATE POLICY "Auth users view interns"
+ON public.interns FOR SELECT TO authenticated
+USING (true);
+
+CREATE POLICY "Admin manage interns"
+ON public.interns FOR ALL TO authenticated
+USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- 10. BUSINESS SETTINGS: Authenticated users can view; only Admins/Owner can update
+CREATE POLICY "Auth users view business_settings"
+ON public.business_settings FOR SELECT TO authenticated
+USING (true);
+
+CREATE POLICY "Admin update business_settings"
+ON public.business_settings FOR UPDATE TO authenticated
+USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+-- ============================================================================
+-- REALTIME SYNCHRONIZATION
+-- Enable live sync across connected devices (tablet POS, manager laptops)
+-- ============================================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'products'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'sales'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.sales;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'stock_movements'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.stock_movements;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'activity_logs'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_logs;
+  END IF;
+END $$;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, ShieldAlert, LogIn } from 'lucide-react';
+import { Lock, ShieldAlert, LogIn, Eye, EyeOff } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 
 // ─── Main Login Component ─────────────────────────────────────────────────────
@@ -8,6 +8,7 @@ export const LoginModal: React.FC = () => {
 
   const [email, setEmail]       = useState('');
   const [pin, setPin]           = useState('');
+  const [showPin, setShowPin]   = useState(false);
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
@@ -114,40 +115,63 @@ export const LoginModal: React.FC = () => {
             />
           </div>
 
-          {/* PIN field */}
+          {/* PIN / Passkey field */}
           <div style={{ textAlign: 'left', marginBottom: '18px' }}>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               <Lock size={11} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-              PIN
+              PIN / Passkey
             </label>
-            <input
-              id="login-pin"
-              type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              required
-              autoComplete="off"
-              placeholder="••••"
-              value={pin}
-              onChange={e => { const v = e.target.value.replace(/\D/g, ''); setPin(v); setError(''); }}
-              disabled={loading}
-              maxLength={8}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                fontSize: '18px',
-                letterSpacing: '0.2em',
-                border: '1.5px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                outline: 'none',
-                boxSizing: 'border-box',
-                color: 'var(--text-main)',
-                background: loading ? '#F8FAFC' : '#FFFFFF',
-                transition: 'border-color 0.15s',
-              }}
-              onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary-blue)'; }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id="login-pin"
+                type={showPin ? 'text' : 'password'}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                required
+                autoComplete="off"
+                placeholder="••••"
+                value={pin}
+                onChange={e => { const v = e.target.value.replace(/\D/g, ''); setPin(v); setError(''); }}
+                disabled={loading}
+                maxLength={8}
+                style={{
+                  width: '100%',
+                  padding: '10px 38px 10px 12px',
+                  fontSize: '18px',
+                  letterSpacing: '0.2em',
+                  border: '1.5px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  color: 'var(--text-main)',
+                  background: loading ? '#F8FAFC' : '#FFFFFF',
+                  transition: 'border-color 0.15s',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary-blue)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title={showPin ? 'Hide passkey' : 'Show passkey'}
+              >
+                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {/* Error message */}
