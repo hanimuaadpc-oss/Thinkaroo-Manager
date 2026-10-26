@@ -220,6 +220,11 @@ DROP POLICY IF EXISTS "Auth users full access stock_movements" ON public.stock_m
 DROP POLICY IF EXISTS "Auth users full access activity_logs" ON public.activity_logs;
 DROP POLICY IF EXISTS "Auth users full access business_settings" ON public.business_settings;
 
+DROP POLICY IF EXISTS "Auth users view interns" ON public.interns;
+DROP POLICY IF EXISTS "Admin manage interns" ON public.interns;
+DROP POLICY IF EXISTS "Auth users view business_settings" ON public.business_settings;
+DROP POLICY IF EXISTS "Admin update business_settings" ON public.business_settings;
+
 DROP POLICY IF EXISTS "Allow public full access to products" ON public.products;
 DROP POLICY IF EXISTS "Allow public full access to purchases" ON public.purchases;
 DROP POLICY IF EXISTS "Allow public full access to sales" ON public.sales;
@@ -231,76 +236,55 @@ DROP POLICY IF EXISTS "Allow public full access to stock_movements" ON public.st
 DROP POLICY IF EXISTS "Allow public full access to activity_logs" ON public.activity_logs;
 DROP POLICY IF EXISTS "Allow public full access to business_settings" ON public.business_settings;
 
--- Helper function: verify if caller is an Admin / Owner
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM public.interns 
-    WHERE (auth_user_id = auth.uid() OR LOWER(email) = LOWER(auth.jwt()->>'email'))
-      AND role IN ('ADMIN', 'OWNER')
-      AND status = 'ENABLED'
-  ) OR (auth.jwt()->'user_metadata'->>'role' IN ('ADMIN', 'OWNER'));
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 1. PRODUCTS: Authenticated team members can view and manage products
-CREATE POLICY "Auth users full access products"
-ON public.products FOR ALL TO authenticated
+-- 1. PRODUCTS: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to products"
+ON public.products FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 2. PURCHASES: Authenticated team members can view and manage purchases
-CREATE POLICY "Auth users full access purchases"
-ON public.purchases FOR ALL TO authenticated
+-- 2. PURCHASES: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to purchases"
+ON public.purchases FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 3. SALES: Authenticated team members can view and manage sales
-CREATE POLICY "Auth users full access sales"
-ON public.sales FOR ALL TO authenticated
+-- 3. SALES: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to sales"
+ON public.sales FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 4. CUSTOMERS: Authenticated team members can view and manage customers
-CREATE POLICY "Auth users full access customers"
-ON public.customers FOR ALL TO authenticated
+-- 4. CUSTOMERS: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to customers"
+ON public.customers FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 5. EXPENSES: Authenticated team members can view and record expenses
-CREATE POLICY "Auth users full access expenses"
-ON public.expenses FOR ALL TO authenticated
+-- 5. EXPENSES: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to expenses"
+ON public.expenses FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 6. WASTAGES: Authenticated team members can view and record wastages
-CREATE POLICY "Auth users full access wastages"
-ON public.wastages FOR ALL TO authenticated
+-- 6. WASTAGES: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to wastages"
+ON public.wastages FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 7. STOCK MOVEMENTS: Authenticated team members can view and log movements
-CREATE POLICY "Auth users full access stock_movements"
-ON public.stock_movements FOR ALL TO authenticated
+-- 7. STOCK MOVEMENTS: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to stock_movements"
+ON public.stock_movements FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 8. ACTIVITY LOGS: Authenticated team members can view and write audit logs
-CREATE POLICY "Auth users full access activity_logs"
-ON public.activity_logs FOR ALL TO authenticated
+-- 8. ACTIVITY LOGS: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to activity_logs"
+ON public.activity_logs FOR ALL TO anon, authenticated
 USING (true) WITH CHECK (true);
 
--- 9. INTERNS: Authenticated users can view team; only Admins/Owner can modify
-CREATE POLICY "Auth users view interns"
-ON public.interns FOR SELECT TO authenticated
-USING (true);
+-- 9. INTERNS: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to interns"
+ON public.interns FOR ALL TO anon, authenticated
+USING (true) WITH CHECK (true);
 
-CREATE POLICY "Admin manage interns"
-ON public.interns FOR ALL TO authenticated
-USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- 10. BUSINESS SETTINGS: Authenticated users can view; only Admins/Owner can update
-CREATE POLICY "Auth users view business_settings"
-ON public.business_settings FOR SELECT TO authenticated
-USING (true);
-
-CREATE POLICY "Admin update business_settings"
-ON public.business_settings FOR UPDATE TO authenticated
-USING (public.is_admin()) WITH CHECK (public.is_admin());
+-- 10. BUSINESS SETTINGS: Full Data API access for Thinkaroo ERP client
+CREATE POLICY "Allow full access to business_settings"
+ON public.business_settings FOR ALL TO anon, authenticated
+USING (true) WITH CHECK (true);
 
 
 -- ============================================================================

@@ -13,13 +13,18 @@ import {
 } from '../types';
 import { toLocalDateString } from '../utils/dateFilterUtils';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-id.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+const rawUrl = import.meta.env.VITE_SUPABASE_URL;
+// Ensure valid project URL: if unset, placeholder, or pointing to old non-existent project ref, use active project
+const supabaseUrl = (rawUrl && !rawUrl.includes('kvkecqfyufubwpmpbavi') && !rawUrl.includes('your-project-id'))
+  ? rawUrl
+  : 'https://dwwtnkcgrvrkzyyoodyw.supabase.co';
 
-export const isSupabaseConfigured = 
-  supabaseUrl !== 'https://your-project-id.supabase.co' && 
-  supabaseKey !== 'your-supabase-anon-key' &&
-  !supabaseUrl.includes('your-project-id');
+const rawKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = (rawKey && !rawKey.includes('your-supabase-anon-key'))
+  ? rawKey
+  : 'sb_publishable_nh3umG-cr1wM_tjqPgsrhQ_zc2W8ezs';
+
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
