@@ -94,7 +94,7 @@ export const LoginModal: React.FC = () => {
               type="email"
               required
               autoComplete="off"
-              placeholder="name@caliphschool.com"
+              placeholder="Enter your Mail"
               value={email}
               onChange={e => { setEmail(e.target.value); setError(''); }}
               disabled={loading}
