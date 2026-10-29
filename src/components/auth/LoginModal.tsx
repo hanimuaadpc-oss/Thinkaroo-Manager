@@ -94,7 +94,7 @@ export const LoginModal: React.FC = () => {
               type="email"
               required
               autoComplete="off"
-              placeholder="Enter your Mail"
+              placeholder="Enter Your Email"
               value={email}
               onChange={e => { setEmail(e.target.value); setError(''); }}
               disabled={loading}
