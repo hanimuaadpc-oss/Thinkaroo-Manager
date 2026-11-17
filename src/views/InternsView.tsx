@@ -8,34 +8,53 @@ import {
   Trash2,
   Activity,
   X,
-  Coins
+  Coins,
+  Key,
+  Eye,
+  EyeOff,
+  Lock
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
+import { Intern } from '../types';
 import { formatDate, formatDateTime } from '../utils/formatters';
 
 export const InternsView: React.FC = () => {
   const {
     interns,
     addIntern,
+    updateInternPassword,
     toggleInternStatus,
     deleteIntern,
     activityLogs,
     currentIntern
   } = useDatabase();
 
+  const isAdmin = currentIntern?.role === 'ADMIN';
+
   const [activeTab, setActiveTab] = useState<'interns' | 'activity'>('interns');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [nameInput, setNameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('Caliph@2026');
+  const [showAddPassword, setShowAddPassword] = useState(false);
   const [roleInput, setRoleInput] = useState<'INTERN' | 'COORDINATOR' | 'ADMIN'>('INTERN');
   const [formError, setFormError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Individual Password Reset modal states
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [selectedInternForPassword, setSelectedInternForPassword] = useState<Intern | null>(null);
+  const [resetPasswordInput, setResetPasswordInput] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleAddIntern = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
-    const res = await addIntern(emailInput, nameInput, roleInput);
+    const res = await addIntern(emailInput, nameInput, roleInput, passwordInput);
     if (!res.success) {
       setFormError(res.message);
       return;
@@ -44,6 +63,32 @@ export const InternsView: React.FC = () => {
     setIsModalOpen(false);
     setEmailInput('');
     setNameInput('');
+    setPasswordInput('Caliph@2026');
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInternForPassword) return;
+    setResetError('');
+    setResetSuccess('');
+    setResetLoading(true);
+
+    try {
+      const res = await updateInternPassword(selectedInternForPassword.id, resetPasswordInput);
+      if (res.success) {
+        setResetSuccess(res.message);
+        setTimeout(() => {
+          setIsResetModalOpen(false);
+          setSelectedInternForPassword(null);
+          setResetPasswordInput('');
+          setResetSuccess('');
+        }, 1500);
+      } else {
+        setResetError(res.message);
+      }
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const filteredInterns = interns.filter(i =>
@@ -114,10 +159,12 @@ export const InternsView: React.FC = () => {
             </button>
           </div>
 
-          <button onClick={() => { setIsModalOpen(true); setFormError(''); }} className="btn-primary">
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Approve Intern</span>
-          </button>
+          {isAdmin && (
+            <button onClick={() => { setIsModalOpen(true); setFormError(''); }} className="btn-primary">
+              <Plus size={16} strokeWidth={2.5} />
+              <span>Approve Intern</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -191,25 +238,45 @@ export const InternsView: React.FC = () => {
                       </span>
                     </td>
                     <td>
-                      <button
-                        onClick={() => toggleInternStatus(intern.id)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '3px 8px',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          border: intern.status === 'ENABLED' ? '1px solid var(--success-border)' : '1px solid var(--danger-border)',
-                          background: intern.status === 'ENABLED' ? 'var(--success-light)' : 'var(--danger-light)',
-                          color: intern.status === 'ENABLED' ? 'var(--success)' : 'var(--danger)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {intern.status === 'ENABLED' ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                        <span>{intern.status}</span>
-                      </button>
+                      {isAdmin ? (
+                        <button
+                          onClick={() => toggleInternStatus(intern.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            border: intern.status === 'ENABLED' ? '1px solid var(--success-border)' : '1px solid var(--danger-border)',
+                            background: intern.status === 'ENABLED' ? 'var(--success-light)' : 'var(--danger-light)',
+                            color: intern.status === 'ENABLED' ? 'var(--success)' : 'var(--danger)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {intern.status === 'ENABLED' ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                          <span>{intern.status}</span>
+                        </button>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            border: intern.status === 'ENABLED' ? '1px solid var(--success-border)' : '1px solid var(--danger-border)',
+                            background: intern.status === 'ENABLED' ? 'var(--success-light)' : 'var(--danger-light)',
+                            color: intern.status === 'ENABLED' ? 'var(--success)' : 'var(--danger)',
+                          }}
+                        >
+                          {intern.status === 'ENABLED' ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                          <span>{intern.status}</span>
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -230,19 +297,39 @@ export const InternsView: React.FC = () => {
                       {intern.lastLogin ? formatDateTime(intern.lastLogin) : 'Never'}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {intern.role !== 'ADMIN' && (
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Revoke access for intern "${intern.name}"?`)) {
-                              deleteIntern(intern.id);
-                            }
-                          }}
-                          className="btn-ghost"
-                          style={{ color: 'var(--danger)', padding: '4px 8px' }}
-                          title="Revoke access"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      {isAdmin ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            onClick={() => {
+                              setSelectedInternForPassword(intern);
+                              setResetPasswordInput('');
+                              setResetError('');
+                              setResetSuccess('');
+                              setIsResetModalOpen(true);
+                            }}
+                            className="btn-ghost"
+                            style={{ color: 'var(--primary-blue)', padding: '4px 8px' }}
+                            title={`Reset password for ${intern.name}`}
+                          >
+                            <Key size={14} />
+                          </button>
+                          {intern.role !== 'ADMIN' && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Revoke access for intern "${intern.name}"?`)) {
+                                  deleteIntern(intern.id);
+                                }
+                              }}
+                              className="btn-ghost"
+                              style={{ color: 'var(--danger)', padding: '4px 8px' }}
+                              title="Revoke access"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</span>
                       )}
                     </td>
                   </tr>
@@ -302,7 +389,7 @@ export const InternsView: React.FC = () => {
       )}
 
       {/* Add / Approve Intern Modal */}
-      {isModalOpen && (
+      {isAdmin && isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
             <div className="modal-header">
@@ -369,6 +456,45 @@ export const InternsView: React.FC = () => {
                     <option value="ADMIN">Faculty Mentor / Admin</option>
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">Initial Account Password *</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showAddPassword ? 'text' : 'password'}
+                      required
+                      minLength={4}
+                      placeholder="e.g. Caliph@2026"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      className="form-input"
+                      style={{ paddingRight: '36px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAddPassword(!showAddPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      title={showAddPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showAddPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    This user will sign in with this password. They can change it anytime in Settings.
+                  </span>
+                </div>
               </div>
 
               <div className="modal-footer">
@@ -377,6 +503,143 @@ export const InternsView: React.FC = () => {
                 </button>
                 <button type="submit" className="btn-primary">
                   Approve Access
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Intern Password Reset Modal */}
+      {isAdmin && isResetModalOpen && selectedInternForPassword && (
+        <div className="modal-overlay" onClick={() => { if (!resetLoading) setIsResetModalOpen(false); }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'var(--primary-blue-light)',
+                  color: 'var(--primary-blue)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Key size={16} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Reset User Password</h3>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                    Set a new individual password for <strong>{selectedInternForPassword.name}</strong>
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => { if (!resetLoading) setIsResetModalOpen(false); }}>
+                <X size={18} color="var(--text-light)" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPassword}>
+              <div className="modal-body">
+                {resetError && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    background: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    color: 'var(--danger)',
+                    fontSize: '12px',
+                    marginBottom: '12px'
+                  }}>
+                    {resetError}
+                  </div>
+                )}
+
+                {resetSuccess && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    background: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    color: 'var(--success)',
+                    fontSize: '12px',
+                    marginBottom: '12px',
+                    fontWeight: 600
+                  }}>
+                    {resetSuccess}
+                  </div>
+                )}
+
+                <div style={{
+                  padding: '10px 12px',
+                  background: '#F8FAFC',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                  marginBottom: '14px',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)'
+                }}>
+                  Account: <strong>{selectedInternForPassword.email}</strong> ({selectedInternForPassword.role})
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">New Password *</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showResetPassword ? 'text' : 'password'}
+                      required
+                      minLength={4}
+                      autoFocus
+                      placeholder="Enter new password (min. 4 characters)"
+                      value={resetPasswordInput}
+                      onChange={(e) => setResetPasswordInput(e.target.value)}
+                      className="form-input"
+                      style={{ paddingRight: '36px' }}
+                      disabled={resetLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      title={showResetPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showResetPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Only this intern will be able to log in with this password.
+                  </span>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  onClick={() => setIsResetModalOpen(false)}
+                  className="btn-secondary"
+                  disabled={resetLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={resetLoading || !resetPasswordInput.trim()}
+                >
+                  {resetLoading ? 'Updating…' : 'Save New Password'}
                 </button>
               </div>
             </form>

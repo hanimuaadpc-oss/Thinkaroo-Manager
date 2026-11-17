@@ -11,6 +11,7 @@ import {
   ActivityLog,
   BusinessSettings
 } from '../types';
+import { initialInterns } from '../data/seedData';
 import { toLocalDateString } from '../utils/dateFilterUtils';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -261,7 +262,43 @@ export function mapWastageToDb(w: Wastage) {
   };
 }
 
+export const USER_PASSWORDS_STORAGE_KEY = 'thinkaroo_user_passwords_v2';
+
+export function getStoredUserPassword(id: string, email?: string): string {
+  try {
+    const raw = localStorage.getItem(USER_PASSWORDS_STORAGE_KEY);
+    if (raw) {
+      const map = JSON.parse(raw);
+      if (id && map[id]) return map[id];
+      if (email && map[email.toLowerCase()]) return map[email.toLowerCase()];
+    }
+    const savedInternsRaw = localStorage.getItem('thinkaroo_interns_v2');
+    if (savedInternsRaw) {
+      const savedInterns = JSON.parse(savedInternsRaw);
+      const match = savedInterns.find((i: any) => i.id === id || (email && i.email?.toLowerCase() === email.toLowerCase()));
+      if (match?.password) return match.password;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return '';
+}
+
+export function saveStoredUserPassword(id: string, email: string, password: string): void {
+  try {
+    const raw = localStorage.getItem(USER_PASSWORDS_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    if (id) map[id] = password;
+    if (email) map[email.toLowerCase()] = password;
+    localStorage.setItem(USER_PASSWORDS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error('Failed to save user password locally', e);
+  }
+}
+
 export function mapInternFromDb(db: any): Intern {
+  const seed = initialInterns.find(s => s.id === db.id || s.email.toLowerCase() === (db.email || '').toLowerCase());
+  const localPassword = getStoredUserPassword(db.id, db.email);
   return {
     id: db.id,
     email: db.email,
@@ -270,12 +307,13 @@ export function mapInternFromDb(db: any): Intern {
     status: db.status || 'ENABLED',
     addedDate: db.added_date,
     lastLogin: db.last_login,
-    commissionBalance: Number(db.commission_balance || 0)
+    commissionBalance: Number(db.commission_balance || 0),
+    password: db.password || localPassword || seed?.password || 'Caliph@2026'
   };
 }
 
 export function mapInternToDb(i: Intern) {
-  return {
+  const payload: any = {
     id: i.id,
     email: i.email,
     name: i.name,
@@ -285,6 +323,10 @@ export function mapInternToDb(i: Intern) {
     last_login: i.lastLogin,
     commission_balance: i.commissionBalance ?? 0
   };
+  if (i.password !== undefined) {
+    payload.password = i.password;
+  }
+  return payload;
 }
 
 export function mapStockMovementFromDb(db: any): StockMovement {

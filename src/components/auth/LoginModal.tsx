@@ -6,21 +6,21 @@ import { useDatabase } from '../../context/DatabaseContext';
 export const LoginModal: React.FC = () => {
   const { authStage, login } = useDatabase();
 
-  const [email, setEmail]       = useState('');
-  const [pin, setPin]           = useState('');
-  const [showPin, setShowPin]   = useState(false);
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError]               = useState('');
+  const [loading, setLoading]           = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const result = await login(email.trim().toLowerCase(), pin.trim());
+      const result = await login(email.trim().toLowerCase(), password.trim());
       if (!result.success) {
         setError(result.message);
-        setPin('');
+        setPassword('');
       }
     } finally {
       setLoading(false);
@@ -84,17 +84,17 @@ export const LoginModal: React.FC = () => {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} autoComplete="off">
-          {/* Email field */}
+          {/* E-mail field */}
           <div style={{ textAlign: 'left', marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Email
+              E-mail
             </label>
             <input
               id="login-email"
-              type="email"
+              type="text"
               required
-              autoComplete="off"
-              placeholder="Enter Your Email"
+              autoComplete="username"
+              placeholder="E-mail"
               value={email}
               onChange={e => { setEmail(e.target.value); setError(''); }}
               disabled={loading}
@@ -115,30 +115,26 @@ export const LoginModal: React.FC = () => {
             />
           </div>
 
-          {/* PIN / Passkey field */}
+          {/* Password field */}
           <div style={{ textAlign: 'left', marginBottom: '18px' }}>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               <Lock size={11} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-              PIN / Passkey
+              Password
             </label>
             <div style={{ position: 'relative' }}>
               <input
-                id="login-pin"
-                type={showPin ? 'text' : 'password'}
-                inputMode="numeric"
-                pattern="[0-9]*"
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
                 required
-                autoComplete="off"
-                placeholder="••••"
-                value={pin}
-                onChange={e => { const v = e.target.value.replace(/\D/g, ''); setPin(v); setError(''); }}
+                autoComplete="current-password"
+                placeholder="Enter Your Password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(''); }}
                 disabled={loading}
-                maxLength={8}
                 style={{
                   width: '100%',
                   padding: '10px 38px 10px 12px',
-                  fontSize: '18px',
-                  letterSpacing: '0.2em',
+                  fontSize: '14px',
                   border: '1.5px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
                   outline: 'none',
@@ -152,7 +148,7 @@ export const LoginModal: React.FC = () => {
               />
               <button
                 type="button"
-                onClick={() => setShowPin(!showPin)}
+                onClick={() => setShowPassword(!showPassword)}
                 style={{
                   position: 'absolute',
                   right: '10px',
@@ -167,10 +163,13 @@ export const LoginModal: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                title={showPin ? 'Hide passkey' : 'Show passkey'}
+                title={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>
+              Sign in with your individual account password
             </div>
           </div>
 
@@ -198,7 +197,7 @@ export const LoginModal: React.FC = () => {
           {/* Submit button */}
           <button
             type="submit"
-            disabled={loading || !email || !pin}
+            disabled={loading || !email || !password}
             style={{
               width: '100%',
               padding: '11px',
@@ -206,13 +205,13 @@ export const LoginModal: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              background: loading || !email || !pin ? '#F1F5F9' : 'var(--primary-blue)',
-              color: loading || !email || !pin ? 'var(--text-muted)' : '#FFFFFF',
+              background: loading || !email || !password ? '#F1F5F9' : 'var(--primary-blue)',
+              color: loading || !email || !password ? 'var(--text-muted)' : '#FFFFFF',
               border: 'none',
               borderRadius: 'var(--radius-md)',
               fontSize: '14px',
               fontWeight: 700,
-              cursor: loading || !email || !pin ? 'not-allowed' : 'pointer',
+              cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s',
             }}
           >

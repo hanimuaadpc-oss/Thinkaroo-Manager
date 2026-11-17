@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS public.interns (
   auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
+  password TEXT DEFAULT 'Caliph@2026',
   role TEXT DEFAULT 'INTERN',
   status TEXT DEFAULT 'ENABLED',
   added_date TIMESTAMPTZ DEFAULT NOW(),
@@ -128,6 +129,7 @@ CREATE TABLE IF NOT EXISTS public.interns (
 );
 
 -- Ensure column exists if upgrading
+ALTER TABLE public.interns ADD COLUMN IF NOT EXISTS password TEXT DEFAULT 'Caliph@2026';
 ALTER TABLE public.interns ADD COLUMN IF NOT EXISTS commission_balance NUMERIC(12,2) DEFAULT 0;
 ALTER TABLE public.interns ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 

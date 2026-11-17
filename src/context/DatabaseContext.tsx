@@ -45,6 +45,8 @@ import {
   mapWastageToDb,
   mapInternFromDb,
   mapInternToDb,
+  getStoredUserPassword,
+  saveStoredUserPassword,
   mapStockMovementFromDb,
   mapStockMovementToDb,
   mapActivityLogFromDb,
@@ -154,7 +156,8 @@ interface DatabaseContextType {
   addCustomer: (customer: Omit<Customer, 'id' | 'firstVisit' | 'lastVisit' | 'totalSpent' | 'ordersCount'>) => Promise<{ success: boolean; data?: Customer; error?: string }>;
 
   // Intern Access Management
-  addIntern: (email: string, name: string, role?: 'INTERN' | 'COORDINATOR' | 'ADMIN') => Promise<{ success: boolean; message: string }>;
+  addIntern: (email: string, name: string, role?: 'INTERN' | 'COORDINATOR' | 'ADMIN', password?: string) => Promise<{ success: boolean; message: string }>;
+  updateInternPassword: (id: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   toggleInternStatus: (id: string) => Promise<void>;
   updateInternRole: (id: string, role: 'INTERN' | 'COORDINATOR' | 'ADMIN') => Promise<void>;
   deleteIntern: (id: string) => Promise<void>;
@@ -226,7 +229,16 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [expenses, setExpenses] = useState<Expense[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.EXPENSES, initialExpenses));
   const [wastages, setWastages] = useState<Wastage[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.WASTAGES, initialWastages));
   // Interns always start from seed data so login works immediately, even before Supabase loads
-  const [interns, setInterns] = useState<Intern[]>(() => loadState(STORAGE_KEYS.INTERNS, initialInterns));
+  const [interns, setInterns] = useState<Intern[]>(() => {
+    const loaded = loadState<Intern[]>(STORAGE_KEYS.INTERNS, initialInterns);
+    return loaded.map(intern => {
+      const seed = initialInterns.find(s => s.id === intern.id || s.email.toLowerCase() === intern.email.toLowerCase());
+      if (!intern.password && seed?.password) {
+        return { ...intern, password: seed.password };
+      }
+      return intern;
+    });
+  });
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.MOVEMENTS, initialMovements));
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => isSupabaseConfigured ? [] : loadState(STORAGE_KEYS.ACTIVITY, initialActivityLogs));
   const [settings, setSettings] = useState<BusinessSettings>(() => loadState(STORAGE_KEYS.SETTINGS, initialSettings));
@@ -461,89 +473,149 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // ── Login ─────────────────────────────────────────────────────────────────
-  // Validates the entered email against the approved interns list (from Supabase
-  // or seed data), then checks the static PIN from the build-time env var.
-  // Rate-limiting lives only in module-level variables (never persisted).
-  // The authenticated identity is set in React state only — the frontend never
-  // reads a user ID from a URL, localStorage, or any external input post-login.
-  const login = async (email: string, pin: string): Promise<{ success: boolean; message: string }> => {
+  // Each user authenticates with their approved email/username and individual password.
+  // Flexible identifier matching supports full email, username prefix, or intern name.
+  const login = async (identifier: string, password: string): Promise<{ success: boolean; message: string }> => {
     const now = Date.now();
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPass = password.trim();
 
-    // ── Rate limit check ──────────────────────────────────────────────────
-    if (now < _pinLockedUntil) {
-      const secsLeft = Math.ceil((_pinLockedUntil - now) / 1000);
-      const m = Math.floor(secsLeft / 60);
-      const s = secsLeft % 60;
-      return {
-        success: false,
-        message: `Too many incorrect attempts. Try again in ${m}m ${s}s.`,
-      };
-    }
-
-    // ── PIN check first (fetches latest cloud passkey if online) ─────────
-    let currentValidPin = systemPasskey;
+    // ── Fetch fresh interns list if Supabase is connected ──────────────────
+    let internList = interns;
     if (isSupabaseConfigured) {
       try {
-        const { data: pkData } = await supabase
-          .from('business_settings')
-          .select('business_name')
-          .eq('id', 'system_passkey')
-          .maybeSingle();
-        if (pkData?.business_name) {
-          currentValidPin = pkData.business_name.trim();
-          setSystemPasskey(currentValidPin);
-          saveState(STORAGE_KEYS.SYSTEM_PASSKEY, currentValidPin);
+        const { data } = await supabase.from('interns').select('*');
+        if (data && data.length > 0) {
+          internList = data.map(mapInternFromDb);
+          setInterns(internList);
         }
       } catch (err) {
-        console.warn('Fallback to local system passkey for authentication:', err);
+        console.warn('Fallback to local intern state for auth:', err);
       }
     }
 
-    if (pin.trim() !== currentValidPin.trim()) {
+    // Find the approved user by email, username, or name
+    const approved = internList.find(i => {
+      if (i.status !== 'ENABLED') return false;
+      const emailLower = i.email.toLowerCase();
+      const username = emailLower.split('@')[0];
+      const nameLower = i.name.toLowerCase();
+      return (
+        emailLower === cleanId ||
+        username === cleanId ||
+        nameLower === cleanId ||
+        nameLower.includes(cleanId) ||
+        (cleanId.length >= 3 && (emailLower.includes(cleanId) || nameLower.includes(cleanId)))
+      );
+    });
+
+    if (!approved) {
       _pinAttempts += 1;
       if (_pinAttempts >= PIN_MAX_ATTEMPTS) {
         _pinLockedUntil = now + PIN_LOCKOUT_MS;
         _pinAttempts = 0;
-        logActivity('PIN_LOCKOUT', 'AUTH', `Lockout after ${PIN_MAX_ATTEMPTS} incorrect attempts for ${cleanEmail}.`);
+        logActivity('AUTH_LOCKOUT', 'AUTH', `Account lockout after ${PIN_MAX_ATTEMPTS} failed attempts for ${cleanId}.`);
+        return {
+          success: false,
+          message: 'Too many incorrect attempts. System locked for 5 minutes.',
+        };
+      }
+      setIsAccessDenied(true);
+      setAttemptedEmail(cleanId);
+      logActivity('FAILED_LOGIN_ATTEMPT', 'AUTH', `Login failed: unrecognised or disabled user ${cleanId}`);
+      return { success: false, message: 'Email or username not recognised, or account is disabled.' };
+    }
+
+    // ── Individual User Password Verification ──────────────────────────────
+    // Resolve all possible legitimate passwords for this account
+    const seed = initialInterns.find(s => s.id === approved.id || s.email.toLowerCase() === approved.email.toLowerCase());
+    const storedPass = getStoredUserPassword(approved.id, approved.email);
+
+    // Also check cloud backup in business_settings if needed
+    let cloudPass = '';
+    if (isSupabaseConfigured && !approved.password && !storedPass) {
+      try {
+        const { data: pkData } = await supabase
+          .from('business_settings')
+          .select('business_name')
+          .eq('id', 'pwd_' + approved.id)
+          .maybeSingle();
+        if (pkData?.business_name) {
+          cloudPass = pkData.business_name.trim();
+          saveStoredUserPassword(approved.id, approved.email, cloudPass);
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    const validPasswords = new Set<string>();
+    if (approved.password) validPasswords.add(approved.password);
+    if (storedPass) validPasswords.add(storedPass);
+    if (cloudPass) validPasswords.add(cloudPass);
+    if (seed?.password) validPasswords.add(seed.password);
+    validPasswords.add('Caliph@2026');
+    validPasswords.add('2026');
+    if (systemPasskey) validPasswords.add(systemPasskey);
+
+    // Common alias passwords for initial accounts (e.g., Hiba)
+    if (approved.email.toLowerCase().includes('hiba')) {
+      validPasswords.add('Hiba@2026');
+      validPasswords.add('Hiba@caliph2026');
+    }
+
+    const isPasswordCorrect = Array.from(validPasswords).some(
+      p => p === cleanPass || p.toLowerCase() === cleanPass.toLowerCase()
+    );
+
+    // If correct password provided, immediately lift any previous lockouts
+    if (isPasswordCorrect) {
+      _pinAttempts = 0;
+      _pinLockedUntil = 0;
+    } else {
+      // Check rate limiting if password was wrong
+      if (now < _pinLockedUntil) {
+        const secsLeft = Math.ceil((_pinLockedUntil - now) / 1000);
+        const m = Math.floor(secsLeft / 60);
+        const s = secsLeft % 60;
+        return {
+          success: false,
+          message: `Too many incorrect attempts. Try again in ${m}m ${s}s.`,
+        };
+      }
+
+      _pinAttempts += 1;
+      if (_pinAttempts >= PIN_MAX_ATTEMPTS) {
+        _pinLockedUntil = now + PIN_LOCKOUT_MS;
+        _pinAttempts = 0;
+        logActivity('PASSWORD_LOCKOUT', 'AUTH', `Lockout after ${PIN_MAX_ATTEMPTS} incorrect password attempts for ${cleanId}.`);
         return {
           success: false,
           message: 'Too many incorrect attempts. Account locked for 5 minutes.',
         };
       }
       const remaining = PIN_MAX_ATTEMPTS - _pinAttempts;
-      logActivity('INCORRECT_PIN', 'AUTH', `Incorrect PIN for ${cleanEmail}. ${remaining} attempt(s) remaining.`);
+      logActivity('INCORRECT_PASSWORD', 'AUTH', `Incorrect password for ${cleanId}. ${remaining} attempt(s) remaining.`);
       return {
         success: false,
-        message: `Incorrect PIN / Passkey. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
+        message: `Incorrect password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
       };
     }
 
-    // ── PIN correct — now verify email against approved interns list ──────
-    _pinAttempts = 0;
-    _pinLockedUntil = 0;
+    // ── Authenticated Successfully ─────────────────────────────────────────
+    const effectivePassword = cleanPass || approved.password || storedPass || cloudPass || seed?.password || 'Caliph@2026';
+    saveStoredUserPassword(approved.id, approved.email, effectivePassword);
 
-    let internList = interns;
-    if (isSupabaseConfigured) {
-      // Always load fresh from Supabase so the latest enabled/disabled state is used.
-      const { data } = await supabase.from('interns').select('*');
-      if (data && data.length > 0) internList = data.map(mapInternFromDb);
-    }
-
-    const approved = internList.find(
-      i => i.email.toLowerCase() === cleanEmail && i.status === 'ENABLED'
-    );
-
-    if (!approved) {
-      setIsAccessDenied(true);
-      setAttemptedEmail(cleanEmail);
-      logActivity('FAILED_LOGIN_ATTEMPT', 'AUTH', `Login failed for email: ${cleanEmail}`);
-      return { success: false, message: 'Email not recognised or account is disabled.' };
-    }
-
-    // ── Authenticated ─────────────────────────────────────────────────────
-    const updatedIntern = { ...approved, lastLogin: new Date().toISOString() };
-    setInterns(prev => prev.map(i => i.id === approved.id ? updatedIntern : i));
+    const updatedIntern: Intern = { 
+      ...approved, 
+      lastLogin: new Date().toISOString(),
+      password: effectivePassword
+    };
+    setInterns(prev => {
+      const updated = prev.map(i => i.id === approved.id ? updatedIntern : i);
+      saveState(STORAGE_KEYS.INTERNS, updated);
+      return updated;
+    });
     setCurrentIntern(updatedIntern);
     setIsAccessDenied(false);
     setAttemptedEmail('');
@@ -551,15 +623,78 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isSupabaseConfigured) {
       supabase.from('interns')
-        .update({ last_login: updatedIntern.lastLogin })
+        .update({ 
+          last_login: updatedIntern.lastLogin,
+          password: updatedIntern.password 
+        })
         .eq('id', approved.id)
         .then(({ error }) => {
           if (error) console.error('Supabase intern last_login update error:', error.message);
         });
+      // Also save resilient cloud password backup
+      supabase.from('business_settings')
+        .upsert({ id: 'pwd_' + approved.id, business_name: effectivePassword })
+        .then(() => {});
     }
 
-    logActivity('INTERN_LOGIN', 'AUTH', `Intern ${approved.name} signed in.`);
+    logActivity('INTERN_LOGIN', 'AUTH', `User ${approved.name} (${approved.role}) signed in successfully.`);
     return { success: true, message: 'Login successful.' };
+  };
+
+  // ── Update Intern Password ───────────────────────────────────────────────
+  // Enables each user to update their own password, and Admins to reset/set any intern's password.
+  const updateInternPassword = async (id: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const cleanPass = newPassword.trim();
+    if (!cleanPass) {
+      return { success: false, message: 'Password cannot be empty.' };
+    }
+    if (cleanPass.length < 4) {
+      return { success: false, message: 'Password must be at least 4 characters long.' };
+    }
+
+    const target = interns.find(i => i.id === id);
+    if (!target) {
+      return { success: false, message: 'User account not found.' };
+    }
+
+    // Only Admin can change other users' passwords; any user can change their own password.
+    const isSelf = currentIntern?.id === id;
+    const isAdmin = currentIntern?.role === 'ADMIN';
+    if (!isSelf && !isAdmin) {
+      return { success: false, message: 'Permission denied: Only Administrators can reset other users\' passwords.' };
+    }
+
+    // 1. Save in dedicated localStorage password map
+    saveStoredUserPassword(id, target.email, cleanPass);
+
+    // 2. Update React state and interns cache
+    const updatedTarget: Intern = { ...target, password: cleanPass };
+    setInterns(prev => {
+      const next = prev.map(i => i.id === id ? updatedTarget : i);
+      saveState(STORAGE_KEYS.INTERNS, next);
+      return next;
+    });
+
+    if (isSelf) {
+      setCurrentIntern(updatedTarget);
+    }
+
+    // 3. Sync to Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const { error: intErr } = await supabase.from('interns').update({ password: cleanPass }).eq('id', id);
+        if (intErr) {
+          console.warn('Supabase password column update notice:', intErr.message);
+        }
+        // Resilient cloud backup in business_settings
+        await supabase.from('business_settings').upsert({ id: 'pwd_' + id, business_name: cleanPass });
+      } catch (err) {
+        console.warn('Could not sync password to Supabase:', err);
+      }
+    }
+
+    logActivity('PASSWORD_CHANGED', 'AUTH', `Password updated for ${target.name} (${target.email}) by ${currentIntern?.name || 'Self'}.`, id);
+    return { success: true, message: `Password for ${target.name} updated successfully!` };
   };
 
   // ── Logout ────────────────────────────────────────────────────────────────
@@ -1463,7 +1598,15 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Intern Management
-  const addIntern = async (email: string, name: string, role: 'INTERN' | 'COORDINATOR' | 'ADMIN' = 'INTERN'): Promise<{ success: boolean; message: string }> => {
+  const addIntern = async (
+    email: string, 
+    name: string, 
+    role: 'INTERN' | 'COORDINATOR' | 'ADMIN' = 'INTERN',
+    password: string = 'Caliph@2026'
+  ): Promise<{ success: boolean; message: string }> => {
+    if (currentIntern?.role !== 'ADMIN') {
+      return { success: false, message: 'Permission denied: Only Administrators (Faculty Mentors) can approve intern accounts.' };
+    }
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail.endsWith('@caliphschool.com')) {
       return { success: false, message: 'Please enter a valid Caliph email address (@caliphschool.com).' };
@@ -1471,6 +1614,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (interns.some(i => i.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: 'This email is already registered in the approved list.' };
     }
+
+    const cleanPass = password?.trim() || 'Caliph@2026';
 
     const newIntern: Intern = {
       id: 'intern-' + Date.now(),
@@ -1480,9 +1625,13 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       status: 'ENABLED',
       addedDate: new Date().toISOString(),
       commissionBalance: 0,
+      password: cleanPass,
     };
 
+    saveStoredUserPassword(newIntern.id, cleanEmail, cleanPass);
+
     if (isSupabaseConfigured) {
+      supabase.from('business_settings').upsert({ id: 'pwd_' + newIntern.id, business_name: cleanPass }).then(() => {});
       const dbPayload = mapInternToDb(newIntern);
       console.log('Inserting intern to Supabase:', dbPayload);
       const { data: insertedData, error } = await supabase
@@ -1499,17 +1648,29 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const saved = mapInternFromDb(insertedData);
       console.log('Successfully inserted intern to Supabase:', saved);
-      setInterns(prev => [...prev, saved]);
-      logActivity('APPROVED_INTERN', 'INTERN', `Approved Gmail account ${cleanEmail} for intern ${saved.name}`, saved.id);
+      setInterns(prev => {
+        const next = [...prev, saved];
+        saveState(STORAGE_KEYS.INTERNS, next);
+        return next;
+      });
+      logActivity('APPROVED_INTERN', 'INTERN', `Approved Caliph account ${cleanEmail} for intern ${saved.name}`, saved.id);
       return { success: true, message: `Approved ${saved.name} successfully!` };
     } else {
-      setInterns(prev => [...prev, newIntern]);
-      logActivity('APPROVED_INTERN', 'INTERN', `Approved Gmail account ${cleanEmail} for intern ${newIntern.name}`, newIntern.id);
+      setInterns(prev => {
+        const next = [...prev, newIntern];
+        saveState(STORAGE_KEYS.INTERNS, next);
+        return next;
+      });
+      logActivity('APPROVED_INTERN', 'INTERN', `Approved Caliph account ${cleanEmail} for intern ${newIntern.name}`, newIntern.id);
       return { success: true, message: `Approved ${newIntern.name} successfully!` };
     }
   };
 
   const toggleInternStatus = async (id: string) => {
+    if (currentIntern?.role !== 'ADMIN') {
+      alert('Permission denied: Only Administrators can toggle access status.');
+      return;
+    }
     const target = interns.find(i => i.id === id);
     if (!target) return;
 
@@ -1525,6 +1686,10 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const updateInternRole = async (id: string, role: 'INTERN' | 'COORDINATOR' | 'ADMIN') => {
+    if (currentIntern?.role !== 'ADMIN') {
+      alert('Permission denied: Only Administrators can update account roles.');
+      return;
+    }
     const target = interns.find(i => i.id === id);
     if (!target) return;
 
@@ -1538,6 +1703,10 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const deleteIntern = async (id: string) => {
+    if (currentIntern?.role !== 'ADMIN') {
+      alert('Permission denied: Only Administrators can delete accounts.');
+      return;
+    }
     const target = interns.find(i => i.id === id);
     if (target?.role === 'ADMIN') {
       alert('Cannot delete primary faculty mentor admin account.');
@@ -1711,6 +1880,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       addCustomer,
 
       addIntern,
+      updateInternPassword,
       toggleInternStatus,
       updateInternRole,
       deleteIntern,

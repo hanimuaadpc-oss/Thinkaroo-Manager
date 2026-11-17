@@ -30,8 +30,7 @@ export const SettingsView: React.FC = () => {
     updateSettings, 
     resetDatabase, 
     currentIntern, 
-    systemPasskey, 
-    updateSystemPasskey 
+    updateInternPassword
   } = useDatabase();
 
   const isAdmin = currentIntern?.role === 'ADMIN';
@@ -40,47 +39,51 @@ export const SettingsView: React.FC = () => {
   const [newCatInput, setNewCatInput] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Master Passkey Management states (Admin only)
-  const [showCurrentPasskey, setShowCurrentPasskey] = useState(false);
-  const [newPasskey, setNewPasskey] = useState('');
-  const [confirmPasskey, setConfirmPasskey] = useState('');
-  const [showNewPasskey, setShowNewPasskey] = useState(false);
-  const [passkeyLoading, setPasskeyLoading] = useState(false);
-  const [passkeySuccessMsg, setPasskeySuccessMsg] = useState('');
-  const [passkeyErrorMsg, setPasskeyErrorMsg] = useState('');
+  // Individual Password Management states
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('');
+  const [passwordErrorMsg, setPasswordErrorMsg] = useState('');
 
-  const handleUpdatePasskey = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasskeyErrorMsg('');
-    setPasskeySuccessMsg('');
+    setPasswordErrorMsg('');
+    setPasswordSuccessMsg('');
 
-    const cleanPasskey = newPasskey.trim();
-    if (!cleanPasskey) {
-      setPasskeyErrorMsg('Please enter a new passkey.');
-      return;
-    }
-    if (!/^\d{4,8}$/.test(cleanPasskey)) {
-      setPasskeyErrorMsg('Passkey must be between 4 and 8 numeric digits (e.g., 2026).');
-      return;
-    }
-    if (cleanPasskey !== confirmPasskey.trim()) {
-      setPasskeyErrorMsg('The two passkeys do not match. Please re-enter.');
+    if (!currentIntern) {
+      setPasswordErrorMsg('You must be logged in to change your password.');
       return;
     }
 
-    setPasskeyLoading(true);
+    const cleanPass = newPassword.trim();
+    if (!cleanPass) {
+      setPasswordErrorMsg('Please enter a new password.');
+      return;
+    }
+    if (cleanPass.length < 4) {
+      setPasswordErrorMsg('Password must be at least 4 characters long.');
+      return;
+    }
+    if (cleanPass !== confirmPassword.trim()) {
+      setPasswordErrorMsg('The two passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setPasswordLoading(true);
     try {
-      const res = await updateSystemPasskey(cleanPasskey);
+      const res = await updateInternPassword(currentIntern.id, cleanPass);
       if (res.success) {
-        setPasskeySuccessMsg(res.message);
-        setNewPasskey('');
-        setConfirmPasskey('');
-        setTimeout(() => setPasskeySuccessMsg(''), 5000);
+        setPasswordSuccessMsg('Your password has been updated successfully!');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setPasswordSuccessMsg(''), 5000);
       } else {
-        setPasskeyErrorMsg(res.message);
+        setPasswordErrorMsg(res.message);
       }
     } finally {
-      setPasskeyLoading(false);
+      setPasswordLoading(false);
     }
   };
 
@@ -200,222 +203,206 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* System Access Passkey (Master Password for All Users) Card */}
+        {/* Account Security & Personal Password Card */}
         <div 
           className="tk-card" 
           style={{ 
-            border: isAdmin ? '1.5px solid #FED7AA' : '1px solid var(--border-subtle)', 
-            background: isAdmin ? '#FFFDFB' : '#FFFFFF',
-            boxShadow: isAdmin ? '0 2px 10px rgba(255, 107, 0, 0.06)' : undefined 
+            border: '1px solid var(--border-subtle)', 
+            background: '#FFFFFF',
+            boxShadow: '0 2px 10px rgba(15, 23, 42, 0.04)' 
           }}
         >
           <div 
             className="tk-card-header" 
             style={{ 
-              background: isAdmin ? 'linear-gradient(90deg, #FFF7ED 0%, #FFFFFF 100%)' : '#F8FAFC',
-              borderBottom: isAdmin ? '1px solid #FED7AA' : '1px solid var(--border-subtle)'
+              background: 'linear-gradient(90deg, #F8FAFC 0%, #FFFFFF 100%)',
+              borderBottom: '1px solid var(--border-subtle)'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <KeyRound size={18} color="var(--primary-orange)" />
+              <KeyRound size={18} color="var(--primary-blue)" />
               <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
-                System Access Passkey (Master Password for All Users)
+                Account Security &amp; Personal Password
               </span>
             </div>
-            {isAdmin ? (
+            {currentIntern && (
               <span className="badge badge-own" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <ShieldCheck size={12} />
-                Admin Authority
-              </span>
-            ) : (
-              <span className="badge" style={{ background: '#F1F5F9', color: 'var(--text-muted)' }}>
-                Admin Only
+                {currentIntern.role} • {currentIntern.name}
               </span>
             )}
           </div>
 
           <div className="tk-card-body">
-            {isAdmin ? (
-              <div>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
-                  This passkey (PIN) is used universally by <strong>all users</strong> (interns, coordinators, and faculty mentors) alongside their approved email address to log into Thinkaroo ERP. Changing it here immediately updates the required login password for every user in the school enterprise.
-                </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+              Each user signs in with their registered email address and their own individual password. You can change your personal password below.
+            </p>
 
-                {/* Currently Active Passkey Display */}
+            {/* Change Password Form */}
+            <form onSubmit={handleUpdatePassword}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>
+                      New Password (min. 4 characters)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary-blue)',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {showNewPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+                      <span>{showNewPassword ? 'Hide password' : 'Show password'}</span>
+                    </button>
+                  </div>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    minLength={4}
+                    value={newPassword}
+                    onChange={e => {
+                      setNewPassword(e.target.value);
+                      setPasswordErrorMsg('');
+                      setPasswordSuccessMsg('');
+                    }}
+                    placeholder="Enter new individual password"
+                    className="form-input"
+                    style={{ fontSize: '14px' }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Choose a secure, memorable password for your account.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Confirm New Password</label>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    minLength={4}
+                    value={confirmPassword}
+                    onChange={e => {
+                      setConfirmPassword(e.target.value);
+                      setPasswordErrorMsg('');
+                      setPasswordSuccessMsg('');
+                    }}
+                    placeholder="Re-enter new password"
+                    className="form-input"
+                    style={{ fontSize: '14px' }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Must match the new password entered on the left.
+                  </span>
+                </div>
+              </div>
+
+              {/* Feedback messages */}
+              {passwordErrorMsg && (
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '12px',
-                  background: '#FFFFFF',
-                  border: '1px solid #FED7AA',
+                  gap: '8px',
+                  color: 'var(--danger)',
+                  fontSize: '12.5px',
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
                   borderRadius: 'var(--radius-md)',
-                  padding: '12px 16px',
-                  marginBottom: '18px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                  padding: '9px 14px',
+                  marginTop: '12px'
                 }}>
-                  <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary-orange)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Currently Active Master Passkey
-                    </div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: showCurrentPasskey ? '0.15em' : '0.25em', color: 'var(--text-main)', marginTop: '2px', fontFamily: 'monospace' }}>
-                      {showCurrentPasskey ? systemPasskey : '••••••••'}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPasskey(!showCurrentPasskey)}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    {showCurrentPasskey ? <EyeOff size={14} /> : <Eye size={14} />}
-                    <span>{showCurrentPasskey ? 'Hide Passkey' : 'Reveal Passkey'}</span>
-                  </button>
+                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                  <span>{passwordErrorMsg}</span>
                 </div>
+              )}
 
-                {/* Change Passkey Form */}
-                <form onSubmit={handleUpdatePasskey}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-                    <div className="form-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <label className="form-label" style={{ margin: 0 }}>
-                          New Passkey (4–8 Digits)
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPasskey(!showNewPasskey)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--primary-blue)',
-                            fontSize: '11.5px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            padding: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          {showNewPasskey ? <EyeOff size={12} /> : <Eye size={12} />}
-                          <span>{showNewPasskey ? 'Hide digits' : 'Show digits'}</span>
-                        </button>
-                      </div>
-                      <input
-                        type={showNewPasskey ? 'text' : 'password'}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={8}
-                        value={newPasskey}
-                        onChange={e => {
-                          setNewPasskey(e.target.value.replace(/\D/g, ''));
-                          setPasskeyErrorMsg('');
-                          setPasskeySuccessMsg('');
-                        }}
-                        placeholder="Enter 4-8 digit numeric PIN"
-                        className="form-input"
-                        style={{ letterSpacing: '0.15em', fontWeight: 700, fontSize: '15px' }}
-                      />
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                        Only numbers (0–9) are accepted. E.g. 2026, 1234, 4589.
-                      </span>
-                    </div>
+              {passwordSuccessMsg && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--success)',
+                  fontSize: '12.5px',
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '9px 14px',
+                  marginTop: '12px'
+                }}>
+                  <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                  <span>{passwordSuccessMsg}</span>
+                </div>
+              )}
 
-                    <div className="form-group">
-                      <label className="form-label">Confirm New Passkey</label>
-                      <input
-                        type={showNewPasskey ? 'text' : 'password'}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={8}
-                        value={confirmPasskey}
-                        onChange={e => {
-                          setConfirmPasskey(e.target.value.replace(/\D/g, ''));
-                          setPasskeyErrorMsg('');
-                          setPasskeySuccessMsg('');
-                        }}
-                        placeholder="Re-enter new PIN"
-                        className="form-input"
-                        style={{ letterSpacing: '0.15em', fontWeight: 700, fontSize: '15px' }}
-                      />
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                        Must match the new passkey entered on the left.
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Feedback messages */}
-                  {passkeyErrorMsg && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: 'var(--danger)',
-                      fontSize: '12.5px',
-                      background: '#FEF2F2',
-                      border: '1px solid #FECACA',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '9px 14px',
-                      marginTop: '12px'
-                    }}>
-                      <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-                      <span>{passkeyErrorMsg}</span>
-                    </div>
-                  )}
-
-                  {passkeySuccessMsg && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: 'var(--success)',
-                      fontSize: '12.5px',
-                      background: '#F0FDF4',
-                      border: '1px solid #BBF7D0',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '9px 14px',
-                      marginTop: '12px'
-                    }}>
-                      <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                      <span>{passkeySuccessMsg}</span>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                    <button
-                      type="submit"
-                      disabled={passkeyLoading || !newPasskey}
-                      className="btn-primary"
-                      style={{
-                        background: 'var(--primary-orange)',
-                        borderColor: 'var(--primary-orange)',
-                        padding: '9px 20px',
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        opacity: (!newPasskey || passkeyLoading) ? 0.6 : 1,
-                        cursor: (!newPasskey || passkeyLoading) ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <KeyRound size={15} />
-                      <span>{passkeyLoading ? 'Updating Passkey...' : 'Update Passkey for All Users'}</span>
-                    </button>
-                  </div>
-                </form>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                <button
+                  type="submit"
+                  disabled={passwordLoading || !newPassword}
+                  className="btn-primary"
+                  style={{
+                    padding: '9px 20px',
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: (!newPassword || passwordLoading) ? 0.6 : 1,
+                    cursor: (!newPassword || passwordLoading) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <KeyRound size={15} />
+                  <span>{passwordLoading ? 'Updating Password…' : 'Update My Password'}</span>
+                </button>
               </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: '#F8FAFC', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                <ShieldAlert size={24} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+            </form>
+
+            {/* Admin Management Section */}
+            {isAdmin && (
+              <div style={{
+                marginTop: '20px',
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                background: '#FFF7ED',
+                border: '1px solid #FED7AA',
+                borderRadius: 'var(--radius-md)',
+                padding: '14px 16px'
+              }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
-                    Administrator Access Required
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={16} color="var(--primary-orange)" />
+                    <span>Administrator Control: Individual Intern Passwords</span>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    The universal login passkey can only be updated by Administrator accounts (Faculty Mentors). You are signed in as <strong>{currentIntern?.name || 'User'}</strong> ({currentIntern?.role || 'Intern'}).
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    You can approve new interns with initial passwords or reset passwords for any student intern individually.
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { window.location.hash = 'interns'; }}
+                  className="btn-secondary"
+                  style={{
+                    fontSize: '12px',
+                    padding: '7px 14px',
+                    background: '#FFFFFF',
+                    borderColor: '#FED7AA',
+                    color: 'var(--primary-orange)',
+                    fontWeight: 700
+                  }}
+                >
+                  Manage Intern Accounts &rarr;
+                </button>
               </div>
             )}
           </div>

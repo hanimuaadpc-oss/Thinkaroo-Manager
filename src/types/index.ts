@@ -185,6 +185,7 @@ export interface Intern {
   addedDate: string;
   lastLogin?: string;
   commissionBalance: number; // Cumulative 10% of selling price from all sales made by this intern
+  password?: string; // Each user's individual password
 }
 
 export interface ActivityLog {
