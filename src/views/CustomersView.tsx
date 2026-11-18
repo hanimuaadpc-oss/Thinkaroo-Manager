@@ -165,7 +165,7 @@ export const CustomersView: React.FC = () => {
               </button>
             </div>
 
-            <div className="modal-body" style={{ maxHeight: '420px' }}>
+            <div className="modal-body">
               {customerSales.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: '24px' }}>
                   No bill details found for this customer.

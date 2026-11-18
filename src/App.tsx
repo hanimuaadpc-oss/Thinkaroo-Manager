@@ -80,6 +80,24 @@ export const App: React.FC = () => {
     setCurrentTab('sales');
   };
 
+  // Prevent background page scrolling when any modal overlay is open
+  useEffect(() => {
+    const checkModal = () => {
+      const hasModal = document.querySelector('.modal-overlay') !== null;
+      document.body.classList.toggle('modal-open', hasModal);
+    };
+
+    checkModal();
+
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
   return (
     <div className="app-container">
       {/* Authentication checks */}

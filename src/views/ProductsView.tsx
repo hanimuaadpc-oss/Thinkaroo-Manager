@@ -838,7 +838,7 @@ export const ProductsView: React.FC = () => {
                 <X size={18} color="var(--text-light)" />
               </button>
             </div>
-            <div className="modal-body" style={{ maxHeight: '400px' }}>
+            <div className="modal-body">
               {historyProduct.changeHistory && historyProduct.changeHistory.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {historyProduct.changeHistory.map(item => (
@@ -864,6 +864,12 @@ export const ProductsView: React.FC = () => {
                   No history logs for this item.
                 </div>
               )}
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={() => setHistoryProduct(null)} className="btn-secondary">
+                Close
+              </button>
             </div>
           </div>
         </div>

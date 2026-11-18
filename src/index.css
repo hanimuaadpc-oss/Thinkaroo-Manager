@@ -316,46 +316,97 @@ input, select, textarea {
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
 }
 
-/* Modals */
+/* Modals (Responsive Three-Section Architecture) */
+body.modal-open,
+body:has(.modal-overlay) {
+  overflow: hidden !important;
+}
+
+body.modal-open .main-content,
+.app-container:has(.modal-overlay) .main-content {
+  overflow: hidden !important;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
   padding: 16px;
   animation: fadeIn 0.15s ease-out;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
   background: #FFFFFF;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-lg);
-  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  width: min(90vw, 640px);
   max-width: 600px;
-  max-height: 90vh;
+  max-height: 90vh; /* fallback */
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
   animation: scaleUp 0.18s ease-out;
 }
 
+/* Ensure forms inside modals flex properly with header, body, and footer */
+.modal-content > form,
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Fixed Header */
 .modal-header {
   padding: 16px 22px;
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
+  background: #FFFFFF;
+  z-index: 2;
 }
 
+/* Independently Vertically Scrollable Body */
 .modal-body {
   padding: 22px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
+/* Custom smooth scrollbars inside modal body */
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-body::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Fixed Footer */
 .modal-footer {
   padding: 14px 22px;
   border-top: 1px solid var(--border-light);
@@ -366,6 +417,8 @@ input, select, textarea {
   background: #FAFAFA;
   border-bottom-left-radius: var(--radius-xl);
   border-bottom-right-radius: var(--radius-xl);
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 /* Tables */
@@ -1018,27 +1071,51 @@ input, select, textarea {
   .modal-overlay {
     padding: 8px !important;
     align-items: flex-end !important;
+    overscroll-behavior: contain;
   }
 
   .modal-content {
+    width: 100% !important;
     max-width: 100% !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
     border-top-left-radius: 20px !important;
     border-top-right-radius: 20px !important;
-    max-height: 92vh !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .modal-content > form,
+  .modal-form {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 
   .modal-header {
     padding: 14px 16px !important;
+    flex-shrink: 0 !important;
   }
 
   .modal-body {
     padding: 16px !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .modal-footer {
     padding: 12px 16px !important;
+    flex-shrink: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
   }
 
   /* Touch Friendly Action Buttons */
